@@ -26,6 +26,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"go.uber.org/multierr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -104,42 +105,108 @@ func (p *PodMetricsClientImpl) promToPodMetrics(
 
 	// Handle LoRA metrics (only if all LoRA MetricSpecs are present)
 	if p.MetricMapping.LoraRequestInfo != nil {
-		loraMetrics, err := p.getLatestLoraMetric(metricFamilies)
+		logger := log.FromContext(context.TODO())
+		// 'vllm:lora_requests_info metrics contains list of different running loras permutations,
+		// each metric's value is the reporting timestamp
+		// we start from the most recent metric, if there are waiting loras - we are on the full capacity, no need to find less recent metric values
+		// if number of loras in running loras is less than max_lora value, go to next less recent metric and get running + waiting loras from it
+		// if number of loras achives max_loras - stop, otherwize continue the process untill we will have enough lora adapters
+
+		latestLoraMetrics, latestTimestamp, err := p.getNextLatestLoraMetric(metricFamilies, 0.0)
 		errs = multierr.Append(errs, err)
 
-		if loraMetrics != nil {
-			updated.ActiveModels = make(map[string]int)
-			updated.WaitingModels = make(map[string]int)
-			for _, label := range loraMetrics.GetLabel() {
-				if label.GetName() == LoraInfoRunningAdaptersMetricName {
-					if label.GetValue() != "" {
-						adapterList := strings.Split(label.GetValue(), ",")
-						for _, adapter := range adapterList {
-							updated.ActiveModels[adapter] = 0
+		if latestLoraMetrics != nil && len(latestLoraMetrics) > 0 {
+			// first read max numbers of loras to use it while active loras reading
+			maxLoras, err := p.getMaxLoras(latestLoraMetrics[0])
+			errs = multierr.Append(errs, err)
+
+			if err == nil {
+				updated.ActiveModels = make(map[string]int)
+				updated.WaitingModels = make(map[string]int)
+				updated.MaxActiveModels = maxLoras
+
+				// continue until collected all loras from the metrics or collected enough loras
+				// enough means that number of running+waiting loras is at least max loras
+				for latestLoraMetrics != nil && err == nil && len(latestLoraMetrics) > 0 {
+					// add loras from the latest metric to the collection of loras
+					for _, metric := range latestLoraMetrics {
+						// go over all labels, get running and waiting loras
+						for _, label := range metric.GetLabel() {
+							if label.GetName() == LoraInfoRunningAdaptersMetricName {
+								if label.GetValue() != "" {
+									adapterList := strings.Split(label.GetValue(), ",")
+									for _, adapter := range adapterList {
+										updated.ActiveModels[adapter] = 0
+									}
+								}
+							}
+							if label.GetName() == LoraInfoWaitingAdaptersMetricName {
+								if label.GetValue() != "" {
+									adapterList := strings.Split(label.GetValue(), ",")
+									for _, adapter := range adapterList {
+										updated.WaitingModels[adapter] = 0
+									}
+								}
+							}
 						}
 					}
-				}
-				if label.GetName() == LoraInfoWaitingAdaptersMetricName {
-					if label.GetValue() != "" {
-						adapterList := strings.Split(label.GetValue(), ",")
-						for _, adapter := range adapterList {
-							updated.WaitingModels[adapter] = 0
-						}
+
+					if len(updated.ActiveModels)+len(updated.WaitingModels) >= maxLoras {
+						// there are enough loras - stop
+						break
 					}
-				}
-				if label.GetName() == LoraInfoMaxAdaptersMetricName {
-					if label.GetValue() != "" {
-						updated.MaxActiveModels, err = strconv.Atoi(label.GetValue())
-						if err != nil {
-							errs = multierr.Append(errs, err)
-						}
-					}
+
+					latestLoraMetrics, latestTimestamp, err = p.getNextLatestLoraMetric(metricFamilies, latestTimestamp)
+					errs = multierr.Append(errs, err)
 				}
 			}
 		}
+		logger.Info(">>> In promToPodMetrics, updated loras", "active", updated.ActiveModels, "waiting", updated.WaitingModels)
 	}
 
 	return updated, errs
+}
+
+// getNextLatestMetric finds the most recent metrics which timestamp (the value) is after the given prevLatestTimestamp
+// Important note: return value is array of metrics because multiple metrics could exist for the same timestamp
+// if prevLatestTimestamp is 0 - return the most recent metrics from the array
+func (p *PodMetricsClientImpl) getNextLatestLoraMetric(metricFamilies map[string]*dto.MetricFamily, prevLatestTimestamp float64) ([]*dto.Metric, float64, error) {
+	var latestTimestamp float64 = 0.0
+	var latestMetrics []*dto.Metric = make([]*dto.Metric, 0)
+
+	if p.MetricMapping.LoraRequestInfo == nil {
+		return nil, 0, nil // No LoRA metrics configured
+	}
+
+	loraRequests, ok := metricFamilies[p.MetricMapping.LoraRequestInfo.MetricName]
+	if !ok {
+		return nil, 0, fmt.Errorf("metric family %q not found", p.MetricMapping.LoraRequestInfo.MetricName)
+	}
+
+	for _, metric := range loraRequests.GetMetric() {
+		if ((prevLatestTimestamp == 0) || (prevLatestTimestamp != 0 && (metric.Gauge.GetValue() < prevLatestTimestamp))) &&
+			latestTimestamp < metric.Gauge.GetValue() {
+			// newer time found, use it
+			latestTimestamp = metric.Gauge.GetValue()
+			latestMetrics = []*dto.Metric{metric}
+		} else if ((prevLatestTimestamp == 0) || (prevLatestTimestamp != 0 && (metric.Gauge.GetValue() < prevLatestTimestamp))) &&
+			latestTimestamp == metric.Gauge.GetValue() {
+			latestMetrics = append(latestMetrics, metric)
+		}
+	}
+
+	return latestMetrics, latestTimestamp, nil
+}
+
+func (p *PodMetricsClientImpl) getMaxLoras(metrics *dto.Metric) (int, error) {
+	for _, label := range metrics.GetLabel() {
+		if label.GetName() == LoraInfoMaxAdaptersMetricName {
+			if label.GetValue() != "" {
+				return strconv.Atoi(label.GetValue())
+			}
+		}
+	}
+	return 0, fmt.Errorf("Lora max is not defined")
 }
 
 // getLatestLoraMetric gets latest lora metric series in gauge metric family `vllm:lora_requests_info`

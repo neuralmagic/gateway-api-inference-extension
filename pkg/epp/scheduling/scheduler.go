@@ -117,6 +117,7 @@ var (
 func NewScheduler(datastore Datastore) *Scheduler {
 	sMng := NewScorerMng()
 	sMng.addScorer(NewSessionAffinityScorer(1, datastore))
+	sMng.addScorer(NewActiveLorasScorer(1))
 
 	return &Scheduler{
 		datastore:              datastore,

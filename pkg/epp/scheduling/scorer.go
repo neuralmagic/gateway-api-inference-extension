@@ -32,6 +32,7 @@ type PodScore struct {
 // Scorer is the interface that scorers must implement
 type Scorer interface {
 	ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) ([]PodScore, error)
+	GetName() string
 }
 
 // Scorer is the interface that scorers must implement
@@ -72,10 +73,12 @@ func (sm *ScorerMng) scoreTargets(ctx *types.Context, pods []*types.PodMetrics) 
 	// add scores from all scorers
 	for _, scorer := range sm.scorers {
 		scoredPods, err := scorer.ScoreTargets(ctx, validPods)
+
 		if err != nil {
 			// in case scorer failed - don't use it in the total score, but continue to other scorers
 			logger.Error(err, "Score targets returned error in scorer")
 		} else {
+			logger.Info("Scorer results: ", "scorer", scorer.GetName(), "scores", scoredPods)
 			for _, scoredPod := range scoredPods {
 				podsTotalScore[scoredPod.Pod] += scoredPod.Score
 			}

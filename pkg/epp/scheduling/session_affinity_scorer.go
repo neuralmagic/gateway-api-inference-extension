@@ -36,6 +36,10 @@ func NewSessionAffinityScorer(weight float64, datastore Datastore) Scorer {
 	}
 }
 
+func (s SessionAffinityScorer) GetName() string {
+	return "session affinity scorer"
+}
+
 // ScoreTargets does the actual scoring of the target pods by the session affinity.
 func (s SessionAffinityScorer) ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) ([]PodScore, error) {
 	logger := log.FromContext(ctx)
