@@ -547,6 +547,57 @@ uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Ku
 
 ### OpenShift Targets (oc)
 
+# ------------------------------------------------------------------------------
+# OpenShift Infrastructure Installer
+#
+# This target deploys infrastructure requirements for the entire cluster.
+# Among other things, this includes CRDs and operators which all users of the
+# cluster need for development (e.g. Gateway API, Istio, etc).
+#
+# **Warning**: Only run this if you're certain you should be running it. It
+# has implications for all users of the cluster!
+# ------------------------------------------------------------------------------
+.PHONY: install-openshift-infrastructure
+install-openshift-infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
+	@echo "Installing the Istio Sail Operator and CRDs for Istio and Gateway API"
+	kustomize build --enable-helm deploy/components/sail-operator | kubectl apply --server-side --force-conflicts -f -
+	@echo "Installing the Istio Control Plane"
+	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# OpenShift Infrastructure Uninstaller
+#
+# This target removes all infrastructure components (e.g. CRDs, operators,
+# etc) for the entire cluster.
+#
+# **Warning**: Only run this if you're certain you should be running it. **This
+# will disrupt everyone using the cluster**. Generally this should only be run
+# when the infrastructure components have undergone very significant change, and
+# you need to do a hard cleanup and re-deploy.
+# ------------------------------------------------------------------------------
+.PHONY: uninstall-openshift-infrastructure
+uninstall-openshift-infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components"
+	@echo "Uninstalling the Istio Control Plane"
+	kustomize build deploy/components/istio-control-plane | kubectl delete -f - || true
+	@echo "Uninstalling the Istio Sail Operator and CRDs for Istio and Gateway API"
+	kustomize build --enable-helm deploy/components/sail-operator | kubectl delete -f - || true
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# OpenShift Installer
+#
+# This target deploys components in a namespace on an OpenShift cluster for
+# a developer to do development and testing cycles.
+# ------------------------------------------------------------------------------
 .PHONY: install-openshift
 install-openshift: check-kubectl check-kustomize check-envsubst ## Install on OpenShift
 	@echo $$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION
@@ -562,6 +613,12 @@ install-openshift: check-kubectl check-kustomize check-envsubst ## Install on Op
 	echo "To use the app, run:"; \
 	echo "alias $(PROJECT_NAME)='kubectl exec -n $(NAMESPACE) -it $$POD -- /app/$(PROJECT_NAME)'" 
 
+# ------------------------------------------------------------------------------
+# OpenShift Uninstaller
+#
+# This target cleans up a developer's testing and development namespace,
+# removing all components therein.
+# ------------------------------------------------------------------------------
 .PHONY: uninstall-openshift
 uninstall-openshift: check-kubectl check-kustomize check-envsubst ## Uninstall from OpenShift
 	@echo "Removing resources from OpenShift..."
