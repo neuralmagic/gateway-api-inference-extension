@@ -18,13 +18,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- configmaps.yaml
-- deployments.yaml
-- services.yaml
+- service-accounts.yaml
 - rbac.yaml
+- destination-rules.yaml
+- inference-pools.yaml
+- inference-models.yaml
+- deployments.yaml
 - gateways.yaml
-- envoy-filters.yaml
+- httproutes.yaml
 
 images:
-- name: inference-router/router-ext-proc
+- name: quay.io/vllm-d/gateway-api-inference-extension/epp
   newTag: 0.0.1
