@@ -12,6 +12,7 @@ set -eo pipefail
 # ------------------------------------------------------------------------------
 
 # TODO: get image names, paths, versions, etc. from the .version.json file
+# See: https://github.com/neuralmagic/gateway-api-inference-extension/issues/28
 
 # Set a default CLUSTER_NAME if not provided
 : "${CLUSTER_NAME:=inference-gateway}"
@@ -59,6 +60,7 @@ done
 # vllm-sim: ``
 # note: you may need to retag the built images to match the expected path and
 # versions listed above
+# See: https://github.com/neuralmagic/gateway-api-inference-extension/issues/28
 
 # ------------------------------------------------------------------------------
 # Cluster Deployment
