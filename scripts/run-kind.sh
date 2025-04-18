@@ -88,7 +88,6 @@ kubectl --context ${KUBE_CONTEXT} -n local-path-storage wait --for=condition=Rea
 
 # Load the vllm simulator image into the cluster
 if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman tag localhost/vllm-d/vllm-sim:${VLLM_SIMULATOR_VERSION} ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION}
 	podman save ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
 else
 	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION}
@@ -96,7 +95,6 @@ fi
 
 # Load the ext_proc endpoint-picker image into the cluster
 if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman tag localhost/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION} ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION}
 	podman save ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
 else
 	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION}
