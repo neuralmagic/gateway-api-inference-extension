@@ -1,86 +1,29 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm-30801
-  labels:
-    app: vllm-30801
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: vllm-30801
-  template:
-    metadata:
-      labels:
-        app: vllm-30801
-        ai-aware-router-pod: "true"
-      annotations:
-        ai-aware-router-address: 127.0.0.1:30801
-    spec:
-      containers:
-      - name: vllm
-        image: vllm-sim/vllm-sim:latest
-        args:
-        - "--port=30801"
-        - "--model=model1"
-        - "--lora=lora1,lora2"
-        ports:
-          - containerPort: 30801
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vllm-30802
+  name: vllm-sim
   labels:
-    app: vllm-30802
+    app: vllm-llama3-8b-instruct
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vllm-30802
+      app: vllm-llama3-8b-instruct
   template:
     metadata:
       labels:
-        app: vllm-30802
+        app: vllm-llama3-8b-instruct
         ai-aware-router-pod: "true"
-      annotations:
-        ai-aware-router-address: 127.0.0.1:30802
     spec:
       containers:
       - name: vllm
-        image: vllm-sim/vllm-sim:latest
+        image: quay.io/vllm-d/vllm-sim:0.0.1
+        imagePullPolicy: IfNotPresent
         args:
-        - "--port=30802"
-        - "--model=model1"
-        - "--lora=lora1,lora2"
+        - "--port=8000"
+        - "--model=food-review"
+        # - "--lora=lora10,lora20,lora30"
+        # - "--time-to-first-token=500"
         ports:
-          - containerPort: 30802
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm-30803
-  labels:
-    app: vllm-30803
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: vllm-30803
-  template:
-    metadata:
-      labels:
-        app: vllm-30803
-        ai-aware-router-pod: "true"
-      annotations:
-        ai-aware-router-address: 127.0.0.1:30803
-    spec:
-      containers:
-      - name: vllm
-        image: vllm-sim/vllm-sim:latest
-        args:
-        - "--port=30803"
-        - "--model=model2"
-        - "--lora=lora3"
-        ports:
-          - containerPort: 30803
+          - containerPort: 8000
