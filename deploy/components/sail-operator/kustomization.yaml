@@ -5,9 +5,6 @@
 # of Istio Control Planes, and ultimately Gateways. This will also deploy all
 # the Istio CRDs.
 #
-# This is required on Kubernetes clusters, and OpenShift clusters versions
-# below 4.19, but OpenShift 4.19+ clusters include all this by default.
-#
 # **Warning**: This needs to be deployed before, and separately from other
 # components as it deploys CRDs. It can be deployed with:
 #

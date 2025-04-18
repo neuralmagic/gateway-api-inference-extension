@@ -15,3 +15,5 @@ resources:
 # Gateway API Inference Extension (GIE) CRDs
 # NOTE: deploys whatever is in the current branch
 - ../../../config/crd # GIE CRDs
+# Istio CRDs
+- istio.yaml

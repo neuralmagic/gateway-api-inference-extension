@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: endpoint-picker
+  labels:
+    app: endpoint-picker
 spec:
   replicas: 1
   selector:
@@ -13,20 +15,38 @@ spec:
         app: endpoint-picker
     spec:
       serviceAccountName: endpoint-picker
+      terminationGracePeriodSeconds: 130
       containers:
-        - name: endpoint-picker
-          image: quay.io/vllm-d/gateway-api-inference-extension/epp:0.0.1
-          args:
-            - "--config-file"
-            - "/etc/endpoint-picker/config.yaml"
-          ports:
-            - name: grpc
-              containerPort: 9080
-              protocol: TCP
-          volumeMounts:
-            - name: endpoint-picker-config
-              mountPath: /etc/endpoint-picker
-      volumes:
-        - name: endpoint-picker-config
-          configMap:
-            name: endpoint-picker-config
+      - name: epp
+        image: quay.io/vllm-d/gateway-api-inference-extension/epp:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - -refreshMetricsInterval
+        - "500ms"
+        - -poolName
+        - "vllm-llama3-8b-instruct"
+        - -v
+        - "4"
+        - --zap-encoder
+        - "json"
+        - -grpcPort
+        - "9002"
+        - -grpcHealthPort
+        - "9003"
+        ports:
+        - containerPort: 9002
+        - containerPort: 9003
+        - name: metrics
+          containerPort: 9090
+        livenessProbe:
+          grpc:
+            port: 9003
+            service: inference-extension
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          grpc:
+            port: 9003
+            service: inference-extension
+          initialDelaySeconds: 5
+          periodSeconds: 10

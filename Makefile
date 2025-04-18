@@ -524,7 +524,7 @@ install-k8s: check-kubectl check-kustomize check-envsubst ## Install on Kubernet
 	kubectl config set-context --current --namespace=$(NAMESPACE)
 	@echo "Deploying resources from deploy/ ..."
 	# Build the kustomization from deploy, substitute variables, and apply the YAML
-	kustomize build deploy/environments/openshift | envsubst | kubectl apply -f -
+	kustomize build deploy/environments/dev/openshift | envsubst | kubectl apply -f -
 	@echo "Waiting for pod to become ready..."
 	sleep 5
 	@POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -o jsonpath='{.items[0].metadata.name}'); \
@@ -539,7 +539,7 @@ uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Ku
 	export PROJECT_NAME=${PROJECT_NAME}
 	export NAMESPACE=${NAMESPACE}
 	@echo "Removing resources from Kubernetes..."
-	kustomize build deploy/environments/openshift | envsubst | kubectl delete --force -f - || true
+	kustomize build deploy/environments/dev/openshift | envsubst | kubectl delete --force -f - || true
 	POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -o jsonpath='{.items[0].metadata.name}'); \
 	echo "Deleting pod: $$POD"; \
 	kubectl delete pod "$$POD" --force --grace-period=0 || true; \
@@ -561,10 +561,8 @@ uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Ku
 install-openshift-infrastructure:
 ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
-	@echo "Installing CRDs for Gateway API & GIE"
+	@echo "Installing CRDs"
 	kustomize build deploy/components/crds | kubectl apply --server-side --force-conflicts -f -
-	@echo "Installing the Istio Sail Operator and CRDs for Istio"
-	kustomize build --enable-helm deploy/components/sail-operator | kubectl apply --server-side --force-conflicts -f -
 	@echo "Installing the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
 else
@@ -588,9 +586,7 @@ ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components"
 	@echo "Uninstalling the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl delete -f - || true
-	@echo "Uninstalling the Istio Sail Operator and CRDs for Istio"
-	kustomize build --enable-helm deploy/components/sail-operator | kubectl delete -f - || true
-	@echo "Uninstalling CRDs for Gateway API & GIE"
+	@echo "Uninstalling CRDs"
 	kustomize build deploy/components/crds | kubectl delete -f - || true
 else
 	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
@@ -609,7 +605,7 @@ install-openshift: check-kubectl check-kustomize check-envsubst ## Install on Op
 	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
 	@echo "Deploying common resources from deploy/ ..."
 	# Build and substitute the base manifests from deploy, then apply them
-	kustomize build deploy/environments/openshift | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -n $(NAMESPACE) -f -
+	kustomize build deploy/environments/dev/openshift | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -n $(NAMESPACE) -f -
 	@echo "Waiting for pod to become ready..."
 	sleep 5
 	@POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -n $(NAMESPACE) -o jsonpath='{.items[0].metadata.name}'); \
@@ -626,7 +622,7 @@ install-openshift: check-kubectl check-kustomize check-envsubst ## Install on Op
 .PHONY: uninstall-openshift
 uninstall-openshift: check-kubectl check-kustomize check-envsubst ## Uninstall from OpenShift
 	@echo "Removing resources from OpenShift..."
-	kustomize build deploy/environments/openshift | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete --force -f - || true
+	kustomize build deploy/environments/dev/openshift | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete --force -f - || true
 	# @if kubectl api-resources --api-group=route.openshift.io | grep -q Route; then \
 	#   envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' < deploy/openshift/route.yaml | kubectl delete --force -f - || true; \
 	# fi
@@ -640,12 +636,12 @@ uninstall-openshift: check-kubectl check-kustomize check-envsubst ## Uninstall f
 .PHONY: install-rbac
 install-rbac: check-kubectl check-kustomize check-envsubst ## Install RBAC
 	@echo "Applying RBAC configuration from deploy/rbac..."
-	kustomize build deploy/environments/openshift/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -f -
+	kustomize build deploy/environments/dev/openshift/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -f -
 
 .PHONY: uninstall-rbac
 uninstall-rbac: check-kubectl check-kustomize check-envsubst ## Uninstall RBAC
 	@echo "Removing RBAC configuration from deploy/rbac..."
-	kustomize build deploy/environments/openshift/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete -f - || true
+	kustomize build deploy/environments/dev/openshift/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete -f - || true
 
 
 ##@ Version Extraction
@@ -789,3 +785,36 @@ print-namespace: ## Print the current namespace
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
 	@echo "$(PROJECT_NAME)"
+
+#
+# Development Environments
+#
+
+KIND_CLUSTER_NAME ?= gie-dev
+
+# ------------------------------------------------------------------------------
+# Development Environment: Kubernetes In Docker (KIND)
+#
+# This target will deploy a local kind cluster with the GIE stack deployed into
+# the default namespace for development and testing.
+#
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind
+environment.dev.kind:
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-dev-env.sh
+
+# ------------------------------------------------------------------------------
+# Development Environment Update: Kubernetes In Docker (KIND)
+#
+# This target will build the current changes into an image, load them into an
+# existing kind cluster and perform a rollout so that the new changes are
+# reflected in the environment.
+#
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind.update
+environment.dev.kind.update: image-build
+	@echo "INFO: Loading images into cluster"
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-load-images.sh 2>&1
+	@echo "INFO: Restarting the Endpoint Picker Deployment"
+	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout restart deployment endpoint-picker
+	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout status deployment endpoint-picker

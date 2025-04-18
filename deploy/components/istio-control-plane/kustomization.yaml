@@ -1,15 +1,25 @@
 # ------------------------------------------------------------------------------
 # Istio Control Plane
 #
-# This deploys an Istio control-plane for the entire cluster. This enables the
-# creation of Gateways.
+# **WARNING**: This is currently using a custom build which supports GIE.
+#
+# This deploys the Istio Control Plane to enable the creation of Gateways.
+# It is expected that the CRDs are deployed separately, before deploying
+# this.
+#
 # ------------------------------------------------------------------------------
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: istio-system
-namePrefix: istio-
 
 resources:
 - namespaces.yaml
-- control-plane.yaml
+- configmaps.yaml
+- policies.yaml
+- service-accounts.yaml
+- rbac.yaml
+- services.yaml
+- webhooks.yaml
+- deployments.yaml
+- hpa.yaml

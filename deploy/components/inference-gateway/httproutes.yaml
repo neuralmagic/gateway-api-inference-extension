@@ -9,11 +9,9 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /v1
+        value: /
     backendRefs:
-    - name: vllm-30801
-      port: 30801
-    - name: vllm-30802
-      port: 30802
-    - name: vllm-30802
-      port: 30802
+    - group: inference.networking.x-k8s.io
+      kind: InferencePool
+      name: vllm-llama3-8b-instruct
+      port: 8000

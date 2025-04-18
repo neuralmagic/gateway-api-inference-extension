@@ -2,8 +2,8 @@
 
 # This shell script deploys a kind cluster with an Istio-based Gateway API
 # implementation fully configured. It deploys the vllm simulator, which it
-# exposes with a Gateway and HTTPRoute. The Gateway is configured with the
-# a filter for the ext_proc endpoint picker.
+# exposes with a Gateway -> HTTPRoute -> InferencePool. The Gateway is
+# configured with the a filter for the ext_proc endpoint picker.
 
 set -eo pipefail
 
@@ -11,23 +11,16 @@ set -eo pipefail
 # Variables
 # ------------------------------------------------------------------------------
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # TODO: get image names, paths, versions, etc. from the .version.json file
 # See: https://github.com/neuralmagic/gateway-api-inference-extension/issues/28
 
 # Set a default CLUSTER_NAME if not provided
-: "${CLUSTER_NAME:=inference-gateway}"
+: "${CLUSTER_NAME:=gie-dev}"
 
-# Set the default IMAGE_REGISTRY if not provided
-: "${IMAGE_REGISTRY:=quay.io/vllm-d}"
-
-# Set a default VLLM_SIMULATOR_VERSION if not provided
-: "${VLLM_SIMULATOR_VERSION:=0.0.2}"
-
-# Set a default ENDPOINT_PICKER_VERSION if not provided
-: "${ENDPOINT_PICKER_VERSION:=0.0.1}"
-
-# Set a default ENDPOINT_PICKER_IMAGE if not provided
-: "${ENDPOINT_PICKER_IMAGE:=gateway-api-inference-extension/epp}"
+# Set the namespace to deploy the Gateway stack to
+: "${PROJECT_NAMESPACE:=default}"
 
 # ------------------------------------------------------------------------------
 # Setup & Requirement Checks
@@ -78,6 +71,9 @@ KUBE_CONTEXT="kind-${CLUSTER_NAME}"
 
 set -x
 
+# Load the required container images
+"${SCRIPT_DIR}/kind-load-images.sh"
+
 # Hotfix for https://github.com/kubernetes-sigs/kind/issues/3880
 CONTAINER_NAME="${CLUSTER_NAME}-control-plane"
 ${CONTAINER_RUNTIME} exec -it ${CONTAINER_NAME} /bin/bash -c "sysctl net.ipv4.conf.all.arp_ignore=0"
@@ -85,20 +81,6 @@ ${CONTAINER_RUNTIME} exec -it ${CONTAINER_NAME} /bin/bash -c "sysctl net.ipv4.co
 # Wait for all pods to be ready
 kubectl --context ${KUBE_CONTEXT} -n kube-system wait --for=condition=Ready --all pods --timeout=300s
 kubectl --context ${KUBE_CONTEXT} -n local-path-storage wait --for=condition=Ready --all pods --timeout=300s
-
-# Load the vllm simulator image into the cluster
-if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman save ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
-else
-	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION}
-fi
-
-# Load the ext_proc endpoint-picker image into the cluster
-if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman save ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
-else
-	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION}
-fi
 
 # ------------------------------------------------------------------------------
 # CRD Deployment (Gateway API + GIE)
@@ -108,22 +90,17 @@ kubectl kustomize deploy/components/crds |
 	kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
 
 # ------------------------------------------------------------------------------
-# Sail Operator Deployment
+# Istio Control Plane Deployment
 # ------------------------------------------------------------------------------
 
-# Deploy the Sail Operator
-kubectl kustomize --enable-helm deploy/components/sail-operator |
-	kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
-
-# Wait for the Sail Operator to be ready
-kubectl --context ${KUBE_CONTEXT} -n sail-operator wait deployment/sail-operator --for=condition=Available --timeout=60s
+kubectl kustomize deploy/components/istio-control-plane | kubectl --context ${KUBE_CONTEXT} apply -f -
 
 # ------------------------------------------------------------------------------
 # Development Environment
 # ------------------------------------------------------------------------------
 
 # Deploy the environment to the "default" namespace
-kubectl kustomize deploy/environments/kind | sed 's/REPLACE_NAMESPACE/default/gI' \
+kubectl kustomize deploy/environments/dev/kind | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
 	| kubectl --context ${KUBE_CONTEXT} apply -f -
 
 # Wait for all pods to be ready
@@ -141,8 +118,8 @@ Deployment completed!
 
 Status:
 
-* The vllm simulator is running
-* The Gateway is exposing the simulator
+* The vllm simulator is running and exposed via InferencePool
+* The Gateway is exposing the InferencePool via HTTPRoute
 * The Endpoint Picker is loaded into the Gateway via ext_proc
 
 You can watch the Endpoint Picker logs with:
@@ -155,7 +132,7 @@ You can use a port-forward to access the Gateway:
 
 With that running in the background, you can make requests:
 
-  $ curl -v -w '\n' -X POST -H 'Content-Type: application/json' -d '{"model":"model1","messages":[{"role":"user","content":"help"}]}' http://localhost:8080
+  $ curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
 
 -----------------------------------------
 EOF
