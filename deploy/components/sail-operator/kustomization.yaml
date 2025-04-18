@@ -3,10 +3,10 @@
 #
 # This deploys the Istio Sail Operator via Helm chart to enable the creation
 # of Istio Control Planes, and ultimately Gateways. This will also deploy all
-# the Istio and Gateway API CRDs.
+# the Istio CRDs.
 #
 # This is required on Kubernetes clusters, and OpenShift clusters versions
-# below 4.19 (OpenShift 4.19+ includes all this by default).
+# below 4.19, but OpenShift 4.19+ clusters include all this by default.
 #
 # **Warning**: This needs to be deployed before, and separately from other
 # components as it deploys CRDs. It can be deployed with:
@@ -21,7 +21,6 @@ kind: Kustomization
 namespace: sail-operator
 
 resources:
-- https://github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1
 - namespaces.yaml
 
 helmCharts:

@@ -1,0 +1,17 @@
+# ------------------------------------------------------------------------------
+# Custom Resource Definitions (CRDs)
+#
+# This deploys the CRDs needed for development environments (e.g. Gateway API).
+#
+# **Warning**: CRDs are cluster-level, so in a shared development environment
+# this needs to be done in a controlled and communicated manner.
+# ------------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+# Gateway API CRDs
+- https://github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1
+# Gateway API Inference Extension (GIE) CRDs
+# NOTE: deploys whatever is in the current branch
+- ../../../config/crd # GIE CRDs
