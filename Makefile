@@ -561,7 +561,7 @@ uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Ku
 install-openshift-infrastructure:
 ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
-	@echo "Installing CRDs for Gateway API & GIE"
+	@echo "Installing CRDs"
 	kustomize build deploy/components/crds | kubectl apply --server-side --force-conflicts -f -
 	@echo "Installing the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
@@ -586,7 +586,7 @@ ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components"
 	@echo "Uninstalling the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl delete -f - || true
-	@echo "Uninstalling CRDs for Gateway API & GIE"
+	@echo "Uninstalling CRDs"
 	kustomize build deploy/components/crds | kubectl delete -f - || true
 else
 	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
