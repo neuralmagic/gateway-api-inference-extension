@@ -6,7 +6,7 @@ metadata:
     pipelinesascode.tekton.dev/on-event: "[pull_request, push]"
     pipelinesascode.tekton.dev/on-target-branch: "[main, dev]"
     pipelinesascode.tekton.dev/task: "git-clone"
-    pipelinesascode.tekton.dev/max-keep-runs: "5"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/git-status: "true"
     pipelinesascode.tekton.dev/on-cel-expression: >
       (!has(body.ref) || body.ref == 'refs/heads/main' || body.ref == 'refs/heads/dev') &&
