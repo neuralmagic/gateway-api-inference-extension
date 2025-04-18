@@ -121,7 +121,7 @@ kubectl kustomize deploy/components/istio-control-plane | kubectl --context ${KU
 # ------------------------------------------------------------------------------
 
 # Deploy the environment to the "default" namespace
-kubectl kustomize deploy/environments/kind | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
+kubectl kustomize deploy/environments/dev/kind | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
 	| kubectl --context ${KUBE_CONTEXT} apply -f -
 
 # Wait for all pods to be ready
