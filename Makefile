@@ -563,8 +563,6 @@ ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
 	@echo "Installing CRDs for Gateway API & GIE"
 	kustomize build deploy/components/crds | kubectl apply --server-side --force-conflicts -f -
-	@echo "Installing the Istio Sail Operator and CRDs for Istio"
-	kustomize build --enable-helm deploy/components/sail-operator | kubectl apply --server-side --force-conflicts -f -
 	@echo "Installing the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
 else
@@ -588,8 +586,6 @@ ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components"
 	@echo "Uninstalling the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl delete -f - || true
-	@echo "Uninstalling the Istio Sail Operator and CRDs for Istio"
-	kustomize build --enable-helm deploy/components/sail-operator | kubectl delete -f - || true
 	@echo "Uninstalling CRDs for Gateway API & GIE"
 	kustomize build deploy/components/crds | kubectl delete -f - || true
 else
