@@ -1,6 +1,3 @@
-# Note: If you change this file, please also change the file used for e2e tests!
-# 
-# https://github.com/kubernetes-sigs/gateway-api-inference-extension/blob/main/test/testdata/inferencepool-e2e.yaml
 apiVersion: inference.networking.x-k8s.io/v1alpha2
 kind: InferencePool
 metadata:
@@ -17,7 +14,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vllm-llama3-8b-instruct-epp
-  namespace: default
 spec:
   selector:
     app: vllm-llama3-8b-instruct-epp
@@ -32,7 +28,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vllm-llama3-8b-instruct-epp
-  namespace: default
   labels:
     app: vllm-llama3-8b-instruct-epp
 spec:
@@ -50,7 +45,7 @@ spec:
       containers:
       - name: epp
 #        image: us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/epp:main
-        image: gateway-api-inference-extension/epp:demo
+        image: gateway-api-inference-extension/epp:latest
         imagePullPolicy: IfNotPresent
         args:
         - -refreshMetricsInterval
@@ -83,44 +78,64 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
-kind: ClusterRole
+kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: pod-read
 rules:
-- apiGroups: ["inference.networking.x-k8s.io"]
-  resources: ["inferencemodels"]
-  verbs: ["get", "watch", "list"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "watch", "list"]
-- apiGroups: ["inference.networking.x-k8s.io"]
-  resources: ["inferencepools"]
-  verbs: ["get", "watch", "list"]
-- apiGroups: ["discovery.k8s.io"]
-  resources: ["endpointslices"]
-  verbs: ["get", "watch", "list"]
 - apiGroups:
-  - authentication.k8s.io
+  - "inference.networking.x-k8s.io"
   resources:
-  - tokenreviews
+  - "inferencemodels"
   verbs:
-  - create
+  - "get"
+  - "watch"
+  - "list"
 - apiGroups:
-  - authorization.k8s.io
+  - ""
   resources:
-  - subjectaccessreviews
+  - "pods"
   verbs:
-  - create
+  - "get"
+  - "watch"
+  - "list"
+- apiGroups:
+  - "inference.networking.x-k8s.io"
+  resources:
+  - "inferencepools"
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+- apiGroups:
+  - "discovery.k8s.io"
+  resources:
+  - "endpointslices"
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+- apiGroups:
+  - "authentication.k8s.io"
+  resources:
+  - "tokenreviews"
+  verbs:
+  - "create"
+- apiGroups:
+  - "authorization.k8s.io"
+  resources:
+  - "subjectaccessreviews"
+  verbs:
+  - "create"
 --- 
-kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
 metadata:
   name: pod-read-binding
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: default
 roleRef:
-  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
   name: pod-read
