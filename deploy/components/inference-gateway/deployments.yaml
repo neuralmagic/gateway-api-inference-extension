@@ -15,7 +15,7 @@ spec:
       serviceAccountName: endpoint-picker
       containers:
         - name: endpoint-picker
-          image: inference-router/router-ext-proc:latest
+          image: quay.io/vllm-d/gateway-api-inference-extension/epp:0.0.1
           args:
             - "--config-file"
             - "/etc/endpoint-picker/config.yaml"

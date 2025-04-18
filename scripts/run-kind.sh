@@ -11,14 +11,22 @@ set -eo pipefail
 # Variables
 # ------------------------------------------------------------------------------
 
+# TODO: get image names, paths, versions, etc. from the .version.json file
+
 # Set a default CLUSTER_NAME if not provided
 : "${CLUSTER_NAME:=inference-gateway}"
+
+# Set the default IMAGE_REGISTRY if not provided
+: "${IMAGE_REGISTRY:=quay.io/vllm-d}"
 
 # Set a default VLLM_SIMULATOR_VERSION if not provided
 : "${VLLM_SIMULATOR_VERSION:=0.0.2}"
 
 # Set a default ENDPOINT_PICKER_VERSION if not provided
 : "${ENDPOINT_PICKER_VERSION:=0.0.1}"
+
+# Set a default ENDPOINT_PICKER_IMAGE if not provided
+: "${ENDPOINT_PICKER_IMAGE:=gateway-api-inference-extension/epp}"
 
 # ------------------------------------------------------------------------------
 # Setup & Requirement Checks
@@ -46,6 +54,12 @@ for cmd in kind kubectl ${CONTAINER_RUNTIME}; do
     fi
 done
 
+# @TODO Make sure the EPP and vllm-sim images are present or built
+# EPP: `make image-load` in the GIE repo
+# vllm-sim: ``
+# note: you may need to retag the built images to match the expected path and
+# versions listed above
+
 # ------------------------------------------------------------------------------
 # Cluster Deployment
 # ------------------------------------------------------------------------------
@@ -72,18 +86,18 @@ kubectl --context ${KUBE_CONTEXT} -n local-path-storage wait --for=condition=Rea
 
 # Load the vllm simulator image into the cluster
 if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman tag localhost/vllm-sim/vllm-sim:${VLLM_SIMULATOR_VERSION} docker.io/vllm-sim/vllm-sim:${VLLM_SIMULATOR_VERSION}
-	podman save docker.io/vllm-sim/vllm-sim:${VLLM_SIMULATOR_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
+	podman tag localhost/vllm-d/vllm-sim:${VLLM_SIMULATOR_VERSION} ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION}
+	podman save ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
 else
-	kind --name ${CLUSTER_NAME} load docker-image vllm-sim/vllm-sim:${VLLM_SIMULATOR_VERSION}
+	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/vllm-sim:${VLLM_SIMULATOR_VERSION}
 fi
 
 # Load the ext_proc endpoint-picker image into the cluster
 if [ "${CONTAINER_RUNTIME}" == "podman" ]; then
-	podman tag localhost/inference-router/router-ext-proc:${ENDPOINT_PICKER_VERSION} docker.io/inference-router/router-ext-proc:${ENDPOINT_PICKER_VERSION}
-	podman save docker.io/inference-router/router-ext-proc:${ENDPOINT_PICKER_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
+	podman tag localhost/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION} ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION}
+	podman save ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION} -o /dev/stdout | kind --name ${CLUSTER_NAME} load image-archive /dev/stdin
 else
-	kind --name ${CLUSTER_NAME} load docker-image inference-router/router-ext-proc:${ENDPOINT_PICKER_VERSION}
+	kind --name ${CLUSTER_NAME} load docker-image ${IMAGE_REGISTRY}/${ENDPOINT_PICKER_IMAGE}:${ENDPOINT_PICKER_VERSION}
 fi
 
 # ------------------------------------------------------------------------------
