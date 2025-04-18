@@ -785,3 +785,36 @@ print-namespace: ## Print the current namespace
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
 	@echo "$(PROJECT_NAME)"
+
+#
+# Development Environments
+#
+
+KIND_CLUSTER_NAME ?= gie-dev
+
+# ------------------------------------------------------------------------------
+# Development Environment: Kubernetes In Docker (KIND)
+#
+# This target will deploy a local kind cluster with the GIE stack deployed into
+# the default namespace for development and testing.
+#
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind
+environment.dev.kind:
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-dev-env.sh
+
+# ------------------------------------------------------------------------------
+# Development Environment Update: Kubernetes In Docker (KIND)
+#
+# This target will build the current changes into an image, load them into an
+# existing kind cluster and perform a rollout so that the new changes are
+# reflected in the environment.
+#
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind.update
+environment.dev.kind.update: image-build
+	@echo "INFO: Loading images into cluster"
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-load-images.sh 2>&1
+	@echo "INFO: Restarting the Endpoint Picker Deployment"
+	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout restart deployment endpoint-picker
+	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout status deployment endpoint-picker
