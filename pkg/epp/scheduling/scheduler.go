@@ -114,15 +114,25 @@ var (
 	}
 )
 
-func NewScheduler(datastore Datastore) *Scheduler {
-	sMng := NewScorerMng()
-	sMng.addScorer(NewSessionAffinityScorer(1, datastore))
+func NewScheduler(ctx context.Context, datastore Datastore) *Scheduler {
+	logger := log.FromContext(ctx).WithName("scheduler")
+	scorerMgr := NewScorerMng()
+
+	kvCacheAwareIndexerConfig := kvCacheIndexerConfigFromEnv()
+	kvCacheAwareScorer, err := NewKVCacheAwareScorer(ctx, kvCacheAwareIndexerConfig)
+	if err != nil {
+		logger.Error(err, "Failed to initialize KVCacheAwareScorer")
+	} else {
+		scorerMgr.AddScorer(kvCacheAwareScorer, 1.0)
+	}
+
+	scorerMgr.AddScorer(NewSessionAffinityScorer(datastore), 1.0)
 
 	return &Scheduler{
 		datastore:              datastore,
 		criticalRequestFilter:  lowLatencyFilter,
 		sheddableRequestFilter: sheddableRequestFilter,
-		scorerMng:              sMng,
+		scorerMgr:              scorerMgr,
 	}
 }
 
@@ -130,7 +140,7 @@ type Scheduler struct {
 	datastore              Datastore
 	criticalRequestFilter  Filter
 	sheddableRequestFilter Filter
-	scorerMng              *ScorerMng
+	scorerMgr              *ScorerMgr
 }
 
 type Datastore interface {
@@ -160,7 +170,7 @@ func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (target
 		return nil, fmt.Errorf("failed to apply filter, resulted %v pods, this should never happen: %w", len(pods), err)
 	}
 
-	selectedPod, err := s.scorerMng.scoreTargets(sCtx, pods)
+	selectedPod, err := s.scorerMgr.ScoreTargets(sCtx, pods)
 	if err != nil {
 		return nil, fmt.Errorf("failed to apply scorers: %w", err)
 	}

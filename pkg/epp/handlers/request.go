@@ -33,6 +33,8 @@ import (
 	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
+const emptyPrompt = ""
+
 // HandleRequestBody always returns the requestContext even in the error case, as the request context is used in error handling.
 func (s *StreamingServer) HandleRequestBody(
 	ctx context.Context,
@@ -70,6 +72,7 @@ func (s *StreamingServer) HandleRequestBody(
 		ResolvedTargetModel: modelName,
 		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
 		SessionID:           reqCtx.SessionID,
+		Prompt:              emptyPrompt,
 	}
 	logger.V(logutil.DEBUG).Info("LLM request assembled", "model", llmReq.Model, "targetModel", llmReq.ResolvedTargetModel, "critical", llmReq.Critical, "session id", reqCtx.SessionID)
 
@@ -77,6 +80,10 @@ func (s *StreamingServer) HandleRequestBody(
 	// Update target models in the body.
 	if llmReq.Model != llmReq.ResolvedTargetModel {
 		requestBodyMap["model"] = llmReq.ResolvedTargetModel
+	}
+	// Extract prompt from the request body.
+	if prompt, ok := requestBodyMap["prompt"].(string); ok {
+		llmReq.Prompt = prompt
 	}
 
 	requestBodyBytes, err = json.Marshal(requestBodyMap)

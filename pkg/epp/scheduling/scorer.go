@@ -29,27 +29,32 @@ type PodScore struct {
 	Pod   *types.PodMetrics
 }
 
-// Scorer is the interface that scorers must implement
+// Scorer defines an interface for scoring pods.
 type Scorer interface {
+	// Name returns the name of the scorer.
+	Name() string
+	// ScoreTargets scores the target pods and returns a list of PodScore.
 	ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) ([]PodScore, error)
 }
 
-// Scorer is the interface that scorers must implement
-type ScorerMng struct {
-	scorers []Scorer
+// ScorerMgr manages a collection of scorers and their use.
+type ScorerMgr struct {
+	scorers map[Scorer]float64
 }
 
-func NewScorerMng() *ScorerMng {
-	return &ScorerMng{
-		scorers: make([]Scorer, 0),
+func NewScorerMng() *ScorerMgr {
+	return &ScorerMgr{
+		scorers: make(map[Scorer]float64),
 	}
 }
 
-func (sm *ScorerMng) addScorer(scorer Scorer) {
-	sm.scorers = append(sm.scorers, scorer)
+// AddScorer adds a new scorer to the manager.
+func (mgr *ScorerMgr) AddScorer(scorer Scorer, weight float64) {
+	mgr.scorers[scorer] = weight
 }
 
-func (sm *ScorerMng) scoreTargets(ctx *types.Context, pods []*types.PodMetrics) (*types.PodMetrics, error) {
+// ScoreTargets scores the target pods using all registered scorers.
+func (mgr *ScorerMgr) ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) (*types.PodMetrics, error) {
 	logger := log.FromContext(ctx)
 
 	podsTotalScore := make(map[*types.PodMetrics]float64)
@@ -66,18 +71,18 @@ func (sm *ScorerMng) scoreTargets(ctx *types.Context, pods []*types.PodMetrics) 
 	}
 
 	if len(validPods) == 0 {
-		return nil, errors.New("Empty list of valid pods to score")
+		return nil, errors.New("no valid pods to score")
 	}
 
 	// add scores from all scorers
-	for _, scorer := range sm.scorers {
+	for scorer, weight := range mgr.scorers {
 		scoredPods, err := scorer.ScoreTargets(ctx, validPods)
 		if err != nil {
 			// in case scorer failed - don't use it in the total score, but continue to other scorers
-			logger.Error(err, "Score targets returned error in scorer")
+			logger.Error(err, "Error scoring pods", "scorer", scorer.Name())
 		} else {
 			for _, scoredPod := range scoredPods {
-				podsTotalScore[scoredPod.Pod] += scoredPod.Score
+				podsTotalScore[scoredPod.Pod] += weight * scoredPod.Score
 			}
 		}
 	}
