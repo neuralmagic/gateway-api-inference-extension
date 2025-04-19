@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package scheduling
 
 import (
@@ -20,24 +21,30 @@ import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
-// sessionAffinity is a routing scorer that routes subsequent
+const sessionAffinityScorerName = "SessionAffinityScorer"
+
+// SessionAffinityScorer is a routing scorer that routes subsequent
 // requests in a session to the same pod as the first request in the
 // session was sent to, by giving that pod the specified weight and assigning
 // zero score to the rest of the targets
 type SessionAffinityScorer struct {
-	weight    float64
 	datastore Datastore
 }
 
-func NewSessionAffinityScorer(weight float64, datastore Datastore) Scorer {
-	return SessionAffinityScorer{
-		weight:    weight,
+// NewSessionAffinityScorer creates a new SessionAffinityScorer.
+func NewSessionAffinityScorer(datastore Datastore) Scorer {
+	return &SessionAffinityScorer{
 		datastore: datastore,
 	}
 }
 
+// Name returns the name of the scorer.
+func (s *SessionAffinityScorer) Name() string {
+	return sessionAffinityScorerName
+}
+
 // ScoreTargets does the actual scoring of the target pods by the session affinity.
-func (s SessionAffinityScorer) ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) ([]PodScore, error) {
+func (s *SessionAffinityScorer) ScoreTargets(ctx *types.Context, pods []*types.PodMetrics) ([]PodScore, error) {
 	logger := log.FromContext(ctx)
 
 	scoredPods := make([]PodScore, len(pods))
@@ -53,8 +60,8 @@ func (s SessionAffinityScorer) ScoreTargets(ctx *types.Context, pods []*types.Po
 	// session is not defined - no score for all pods
 	for i, pod := range pods {
 		if selectedPodFullName == pod.NamespacedName.String() {
-			logger.Info("Pod found for session", "session id", ctx.Req.SessionID, "pod", pod.NamespacedName.String())
-			scoredPods[i].Score = s.weight
+			logger.Info("Pod found for session", "sessionId", ctx.Req.SessionID, "pod", pod.NamespacedName.String())
+			scoredPods[i].Score = 1.0
 		}
 		scoredPods[i].Pod = pod
 	}

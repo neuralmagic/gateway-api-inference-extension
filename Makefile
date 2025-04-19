@@ -479,7 +479,12 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 .PHONY:	image-build
 image-build: check-container-tool load-version-json ## Build container image using $(CONTAINER_TOOL)
 	@printf "\033[33;1m==== Building container image $(IMG) ====\033[0m\n"
-	$(CONTAINER_TOOL) build --build-arg TARGETOS=$(TARGETOS) --build-arg TARGETARCH=$(TARGETARCH) -t $(IMG) .
+	$(CONTAINER_TOOL) build --platform=$(TARGETOS)/$(TARGETARCH) \
+ 		--build-arg TARGETOS=$(TARGETOS) \
+		--build-arg TARGETARCH=$(TARGETARCH) \
+		--build-arg GIT_NM_USER=$(GIT_NM_USER)\
+        --build-arg NM_TOKEN=$(NM_TOKEN) \
+ 		-t $(IMG) .
 
 .PHONY: image-push
 image-push: check-container-tool load-version-json ## Push container image $(IMG) to registry

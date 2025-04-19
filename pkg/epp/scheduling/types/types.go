@@ -34,6 +34,7 @@ type LLMRequest struct {
 	ResolvedTargetModel string
 	Critical            bool
 	SessionID           string
+	Prompt              string
 }
 
 // Context holds contextual information during a scheduling operation.
