@@ -818,3 +818,7 @@ environment.dev.kind.update: image-build
 	@echo "INFO: Restarting the Endpoint Picker Deployment"
 	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout restart deployment endpoint-picker
 	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout status deployment endpoint-picker
+
+.PHONY: install-hooks
+install-hooks: ## Install git hooks
+	git config core.hooksPath hooks
