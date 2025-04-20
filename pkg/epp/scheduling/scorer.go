@@ -92,6 +92,7 @@ func (sm *ScorerMng) scoreTargets(ctx *types.Context, pods []*types.PodMetrics) 
 		if isFirst {
 			maxScore = score
 			highestScoreTargets = []*types.PodMetrics{pod}
+			isFirst = false
 		} else {
 			if score > maxScore {
 				maxScore = score
