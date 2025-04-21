@@ -563,6 +563,8 @@ ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
 	@echo "Installing CRDs"
 	kustomize build deploy/components/crds | kubectl apply --server-side --force-conflicts -f -
+	@echo "Installing RBAC"
+	kustomize build deploy/components/
 	@echo "Installing the Istio Control Plane"
 	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
 else
@@ -786,6 +788,9 @@ print-namespace: ## Print the current namespace
 print-project-name: ## Print the current project name
 	@echo "$(PROJECT_NAME)"
 
+.PHONY: install-hooks
+install-hooks: ## Install git hooks
+	git config core.hooksPath hooks
 #
 # Development Environments
 #
@@ -818,7 +823,3 @@ environment.dev.kind.update: image-build
 	@echo "INFO: Restarting the Endpoint Picker Deployment"
 	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout restart deployment endpoint-picker
 	kubectl --context kind-$(KIND_CLUSTER_NAME) -n default rollout status deployment endpoint-picker
-
-.PHONY: install-hooks
-install-hooks: ## Install git hooks
-	git config core.hooksPath hooks
