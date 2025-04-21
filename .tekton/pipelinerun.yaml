@@ -196,6 +196,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["dev", "main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-test-post-deploy-task
         params:
@@ -220,6 +223,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
         continueOn:
           errors: true
         params:
@@ -237,6 +243,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
         runAfter:
           - benchmark-h100
         taskRef:
