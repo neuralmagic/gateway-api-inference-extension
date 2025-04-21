@@ -398,7 +398,6 @@ DEV_VERSION ?= 0.0.1
 PROD_VERSION ?= 0.0.0
 IMAGE_TAG_BASE ?= quay.io/vllm-d/$(PROJECT_NAME)/epp
 IMG = $(IMAGE_TAG_BASE):$(DEV_VERSION)
-NAMESPACE ?= hc4ai-operator
 
 # CONTAINER_TOOL := $(shell command -v docker >/dev/null 2>&1 && echo docker || command -v podman >/dev/null 2>&1 && echo podman || echo "")
 BUILDER := $(shell command -v buildah >/dev/null 2>&1 && echo buildah || echo $(CONTAINER_TOOL))
