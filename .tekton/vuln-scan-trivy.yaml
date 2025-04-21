@@ -2,6 +2,10 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: trivy-scan
+  annotations:
+    task.output.location: results
+    task.results.format: application/json
+    task.results.key: SCAN_OUTPUT
 spec:
   params:
     - name: IMAGE_URL
@@ -9,19 +13,19 @@ spec:
       description: Full image URL (e.g., quay.io/org/image:tag)
     - name: SEVERITY
       type: string
-      default: "CRITICAL,HIGH"
+      default: "CRITICAL,HIGH,MEDIUM"
       description: Comma-separated severity levels
     - name: ARGS
       type: string
       default: ""
       description: Additional Trivy arguments
+  results:
+    - name: SCAN_OUTPUT
+      description: CVE result format
   workspaces:
     - name: registry-secret
       description: Workspace with Docker config.json (auth for private registries)
     - name: output
-  results:
-    - name: vulnerabilities
-      type: string
   steps:
     - name: trivy-scan
       image: docker:20.10.24-dind
@@ -57,11 +61,29 @@ spec:
           $(params.ARGS) \
           "$IMAGE" > /workspace/output/trivy-results.json; then
           echo "❌ Trivy scan failed"
-          echo -n "-1" > $(results.vulnerabilities.path)
+          echo -n "-1" > /tekton/results/vulnerabilities
           exit 1
         fi
 
-        echo "📊 Counting vulnerabilities..."
-        vuln_count=$(jq '[.Results[].Vulnerabilities[]?] | length' /workspace/output/trivy-results.json)
+        echo "📋 Trivy scan result:"
+        cat /workspace/output/trivy-results.json
+
+        echo "📊 Parsing vulnerabilities..."
+
+        vuln_count=$(jq '[.Results[].Vulnerabilities[]?] | length // 0' /workspace/output/trivy-results.json)
         echo "📊 Found $vuln_count vulnerabilities"
-        echo -n "$vuln_count" > /tekton/results/vulnerabilities
+
+        if [ "$vuln_count" -gt 0 ]; then
+          # Parse the vulnerabilities and ensure that missing categories are assigned zero count
+          jq -rce '
+            {
+              vulnerabilities: {
+                critical: ([.Results[].Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length),
+                high: ([.Results[].Vulnerabilities[]? | select(.Severity == "HIGH")] | length),
+                medium: ([.Results[].Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length),
+                low: ([.Results[].Vulnerabilities[]? | select(.Severity == "LOW")] | length)
+              }
+            }' /workspace/output/trivy-results.json > /tekton/results/SCAN_OUTPUT
+        else
+          echo "📊 No vulnerabilities found, skipping parsing."
+        fi

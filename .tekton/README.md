@@ -1,6 +1,10 @@
 ## 🛠️ CI/CD Pipeline Overview – Your Project
 
-This pipeline is designed to support safe, efficient, and traceable development and deployment workflows using OpenShift Pipelines-as-Code, GitHub, and Quay.io.
+<!-- NOTE TO CONTRIBUTORS: every repo in the hc4ai organization is intended to have the same contents in this file. The origin is the copy in https://github.ibm.com/mspreitz/hc4ai-hello-neural/blob/dev/.tekton/README.md; submit PRs against that one -->
+
+This pipeline is designed to support safe, efficient, and traceable development and deployment workflows using [OpenShift Pipelines-as-Code](https://pipelinesascode.com/), [Tekton](https://tekton.dev/), [buildah](https://buildah.io/), GitHub, and Quay.io.
+
+This pipeline is used for CI/CD of the `dev` and `main` branches. This pipeline runs from source through container image build to deployment and testing in the hc4ai cluster.
 
 ---
 
@@ -24,19 +28,28 @@ Each repo includes a `.version.json` file at its root. This file controls:
 
 #### 🔑 Fields:
 - **dev-version**: Current version of the dev branch. Used to tag dev images.
-- **dev-registry**: Container registry location for development image pushes.
+- **dev-registry**: Container repository location for development image pushes.
 - **prod-version**: Managed by automation. Updated during promotion to match the dev-version.
-- **prod-registry**: Container registry for production image pushes. The promoted dev image is re-tagged and pushed here.
+- **prod-registry**: Container repository for production image pushes. The promoted dev image is re-tagged and pushed here.
 
 The pipeline reads this file to:
 - Extract the appropriate version tag
-- Determine the correct registry for image pushes
+- Determine the correct repository for image pushes
 - Promote and tag dev images for prod
 
 ---
 
+### Container Repositories
+
+This pipeline maintains two container repositories for this GitHub repository, as follows.
+
+- `quay.io/vllm-d/<repoName>-dev`. Hold builds from the `dev` branch as described below.
+- `quay.io/vllm-d/<repoName>`. Holds promotions to prod, as described below.
+
+---
+
 ### ⚙️ Pipeline Triggers
-Triggered on `push` and `pull_request` events targeting the `dev` or `main` branches.
+Triggered on `push` and `pull_request` events targeting the `dev` or `main` branches. The following workflows are the two behaviors of this pipeline.
 
 ### 🔧 dev Branch Workflow
 1. Checkout repository
@@ -47,9 +60,9 @@ Triggered on `push` and `pull_request` events targeting the `dev` or `main` bran
     - prod-version
     - prod-registry
 4. Build and push container image to:
-   → `<dev-registry>:<dev-version>`
+   → `<dev-repository>:<dev-version>`
 5. Tag the Git commit using the `dev-version`
-6. Optionally redeploy objects to OpenShift in `hc4ai-operator-dev`
+6. Optionally redeploy objects to OpenShift in the `hc4ai-operator-dev` namespace.
 
 ✅ This process ensures that all code merged into dev is validated and deployed for testing.
 
@@ -57,10 +70,10 @@ Triggered on `push` and `pull_request` events targeting the `dev` or `main` bran
 1. Checkout, lint, test, and parse `.version.json`
 2. Skip image rebuild
 3. Promote image by copying from:
-   → `<dev-registry:<dev-version>` → `<prod-registry>:<prod-version>`
+   → `<dev-repository:<dev-version>` → `<prod-repository>:<prod-version>`
 4. Tag the Git commit using the `prod-version`
 5. Update the upstream repo’s submodule to reference the new tag
-6. Redeploy to OpenShift in `hc4ai-operator`
+6. Redeploy to OpenShift in the `hc4ai-operator` namespace.
 
 ✅ No image rebuilds occur on main. Only validated dev images are promoted, ensuring reproducibility.
 
@@ -84,8 +97,8 @@ Tags are created using the configured Git credentials and pushed to the remote r
 
 ### ☸️ OpenShift Deployment
 The pipeline includes automated deployment:
-- On `dev`: Deploys to `hc4ai-operator-dev`
-- On `main`: Deploys to `hc4ai-operator`
+- On `dev`: Deploys to the `hc4ai-operator-dev` namespace. The Pod is named `<repoName>-major-minor`, using the `dev-version` from `.version.json`.
+- On `main`: Deploys to `hc4ai-operator` namespace. The Pod is named `<repoName>-major-minor`, using the `prod-version` from `.version.json`.
 
 Using `make uninstall-openshift` and `make install-openshift`, resources are cleanly reset.
 
@@ -112,6 +125,7 @@ After deployment, the pipeline:
 
 ### 🧠 Why `.version.json` Matters
 - Decouples versioning from Git commit hashes
-- Provides a single source of truth for version and registry info
+- Provides a single source of truth for version and repository info
 - Enables deterministic builds and controlled releases
 - Simplifies debugging and auditing across environments
+
