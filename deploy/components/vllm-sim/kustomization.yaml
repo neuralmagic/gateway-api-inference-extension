@@ -10,6 +10,7 @@ kind: Kustomization
 
 resources:
 - deployments.yaml
+- deployments-2.yaml
 
 images:
 - name: quay.io/vllm-d/vllm-sim
