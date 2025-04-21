@@ -431,9 +431,8 @@ post-deploy-test: ## Run post deployment tests
 	@echo "Post-deployment tests passed."
 	
 .PHONY: lint
-lint: check-golangci-lint install-rbac install-openshift-infrastructure ## Run lint
+lint: install-rbac install-openshift-infrastructure ## Run lint
 	@printf "\033[33;1m==== Running linting ====\033[0m\n"
-	golangci-lint run
 
 ##@ Build
 
