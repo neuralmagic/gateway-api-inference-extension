@@ -561,12 +561,8 @@ uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Ku
 install-openshift-infrastructure:
 ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
 	@echo "INFRASTRUCTURE_OVERRIDE is set to true, deploying infrastructure components"
-	@echo "Installing CRDs"
-	kustomize build deploy/components/crds | kubectl apply --server-side --force-conflicts -f -
-	@echo "Installing RBAC"
-	kustomize build deploy/components/
-	@echo "Installing the Istio Control Plane"
-	kustomize build deploy/components/istio-control-plane | kubectl apply -f -
+	@echo "Installing OpenShift Infrastructure"
+	kustomize build deploy/environments/dev/openshift-infra | kubectl apply --server-side --force-conflicts -f -
 else
 	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
 endif
@@ -585,11 +581,12 @@ endif
 .PHONY: uninstall-openshift-infrastructure
 uninstall-openshift-infrastructure:
 ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
-	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components"
-	@echo "Uninstalling the Istio Control Plane"
-	kustomize build deploy/components/istio-control-plane | kubectl delete -f - || true
-	@echo "Uninstalling CRDs"
-	kustomize build deploy/components/crds | kubectl delete -f - || true
+	@echo "INFRASTRUCTURE_OVERRIDE is set to true, removing infrastructure components (this is extremely destructive)"
+	@echo "This is extremely destructive. We'll provide a few seconds before starting to give you a chance to cancel."
+	sleep 3
+	@echo "Uninstalling OpenShift Infrastructure Components"
+	@echo "Installing OpenShift Infrastructure"
+	kustomize build deploy/environments/dev/openshift-infra | kubectl delete -f - || true
 else
 	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
 endif
