@@ -27,4 +27,4 @@ spec:
         fi
 
         # Run lint
-        make lint
+        INFRASTRUCTURE_OVERRIDE=true make lint
