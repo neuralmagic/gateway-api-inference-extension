@@ -26,5 +26,19 @@ spec:
           echo "⚠️ No golangci-lint config file found. Using default linters"
         fi
 
+        echo "📥 Installing kubectl..."
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+        echo "📥 Installing kustomize..."
+        KUSTOMIZE_TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | jq -r '.tag_name')
+        KUSTOMIZE_VERSION="${KUSTOMIZE_TAG##*/}"  # strips prefix like 'kustomize/' from tag
+
+        curl -LO "https://github.com/kubernetes-sigs/kustomize/releases/download/${KUSTOMIZE_TAG}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+
+        tar -xzf "kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" -C /usr/local/bin
+        chmod +x /usr/local/bin/kustomize
+        kustomize version
+
         # Run lint
         INFRASTRUCTURE_OVERRIDE=true make lint
