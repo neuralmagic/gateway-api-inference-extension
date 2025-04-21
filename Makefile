@@ -697,3 +697,126 @@ environment.dev.kind.update: image-build
 clean.environment.dev.kind:
 	@echo "INFO: cleaning up kind cluster $(KIND_CLUSTER_NAME)"
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
+
+# ==============================================================================
+# Development Environments - Kubernetes
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Deploy Infrastructure
+#
+# This target deploys infrastructure requirements for the entire cluster.
+# Among other things, this includes CRDs and operators which all users of the
+# cluster need for development (e.g. Gateway API, Istio, etc).
+#
+# **Warning**: This needs to be run and regularly updated by an admin to
+# support the individual development environments on the cluster.
+#
+# **Warning**: Only run this if you're certain you should be running it. It
+# has implications for all users of the cluster!
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kubernetes.infrastructure
+environment.dev.kubernetes.infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "Deploying OpenShift Infrastructure Components"
+	kustomize build deploy/environments/dev/kubernetes-infra | kubectl apply --server-side --force-conflicts -f -
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Teardown Infrastructure
+#
+# This target removes all infrastructure components (e.g. CRDs, operators,
+# etc) for the entire cluster.
+#
+# **Warning**: Only run this if you're certain you should be running it. **This
+# will disrupt everyone using the cluster**. Generally this should only be run
+# when the infrastructure components have undergone very significant change, and
+# you need to do a hard cleanup and re-deploy.
+# ------------------------------------------------------------------------------
+.PHONY: clean.environment.dev.kubernetes.infrastructure
+clean.environment.dev.kubernetes.infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "This is extremely destructive. We'll provide 5 seconds before starting to give you a chance to cancel."
+	sleep 5
+	@echo "Tearing Down OpenShift Infrastructure Components"
+	kustomize build deploy/environments/dev/kubernetes-infra | kubectl delete -f - || true
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Deploy
+#
+# This target deploys the GIE stack in a specific namespace for development and
+# testing.
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kubernetes
+environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
+	@echo "INFO: checking required vars"
+ifndef NAMESPACE
+	$(error "Error: NAMESPACE is required but not set)
+endif
+	export NAMESPACE=${NAMESPACE}
+ifndef REGISTRY_SECRET
+	$(error "Error: REGISTRY_SECRET is required but not set)
+endif
+	export REGISTRY_SECRET=${REGISTRY_SECRET}
+ifndef VLLM_SIM_IMAGE
+	$(error "Error: VLLM_SIM_IMAGE is required but not set)
+endif
+	export VLLM_SIM_IMAGE=${VLLM_SIM_IMAGE}
+ifndef VLLM_SIM_TAG
+	$(error "Error: VLLM_SIM_TAG is required but not set)
+endif
+	export VLLM_SIM_TAG=${VLLM_SIM_TAG}
+ifndef EPP_IMAGE
+	$(error "Error: EPP_IMAGE is required but not set)
+endif
+	export EPP_IMAGE=${EPP_IMAGE}
+ifndef EPP_TAG
+	$(error "Error: EPP_TAG is required but not set)
+endif
+	export EPP_TAG=${EPP_TAG}
+	@echo "INFO: Creating namespace (if needed) and setting context to $(NAMESPACE)..."
+	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
+	kubectl config set-context --current --namespace=$(NAMESPACE)
+	@echo "INFO: Deploying Development Environment in namespace $(NAMESPACE)"
+	kustomize build deploy/environments/dev/kubernetes | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	@echo "INFO: Waiting for Pods in namespace $(NAMESPACE) to become ready"
+	kubectl -n $(NAMESPACE) wait --for=condition=Ready --all pods --timeout=300s
+	@echo "INFO: Waiting for Gateway in namespace $(NAMESPACE) to become ready"
+	kubectl -n $(NAMESPACE) wait gateway/inference-gateway --for=condition=Programmed --timeout=60s
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Teardown
+#
+# Tears down the namespace, and therefore the development environment.
+# ------------------------------------------------------------------------------
+.PHONY: clean.environment.dev.kubernetes
+clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
+ifndef NAMESPACE
+	$(error "Error: NAMESPACE is required but not set)
+endif
+	@echo "INFO: deleting namespace $(NAMESPACE)"
+	kubectl delete namespace $(NAMESPACE)
+
+# -----------------------------------------------------------------------------
+# TODO: these are old aliases that we still need for the moment, but will be
+# cleaned up later.
+#
+# See: https://github.com/neuralmagic/gateway-api-inference-extension/issues/28
+# -----------------------------------------------------------------------------
+
+.PHONY: install-openshift-infrastructure
+install-openshift-infrastructure: environment.dev.kubernetes.infrastructure
+
+.PHONY: uninstall-openshift-infrastructure
+uninstall-openshift-infrastructure: clean.environment.dev.kubernetes.infrastructure
+
+.PHONY: install-openshift
+install-openshift: environment.dev.kubernetes
+
+.PHONY: uninstall-openshift
+uninstall-openshift: clean.environment.dev.kubernetes
