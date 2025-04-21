@@ -1,0 +1,67 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: trivy-scan
+spec:
+  params:
+    - name: IMAGE_URL
+      type: string
+      description: Full image URL (e.g., quay.io/org/image:tag)
+    - name: SEVERITY
+      type: string
+      default: "CRITICAL,HIGH"
+      description: Comma-separated severity levels
+    - name: ARGS
+      type: string
+      default: ""
+      description: Additional Trivy arguments
+  workspaces:
+    - name: registry-secret
+      description: Workspace with Docker config.json (auth for private registries)
+    - name: output
+  results:
+    - name: vulnerabilities
+      type: string
+  steps:
+    - name: trivy-scan
+      image: docker:20.10.24-dind
+      securityContext:
+        privileged: true
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "🔧 Starting Docker daemon..."
+        dockerd-entrypoint.sh &
+
+        echo "⏳ Waiting for Docker daemon to be ready..."
+        until docker info > /dev/null 2>&1; do
+          sleep 1
+        done
+
+        echo "🔐 Setting up Docker credentials..."
+        mkdir -p /root/.docker
+        cp /workspace/registry-secret/.dockerconfigjson /root/.docker/config.json
+
+        echo "⬇️ Installing Trivy..."
+        apk add --no-cache curl jq
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+        IMAGE="$(echo $(params.IMAGE_URL))"
+        IMAGE=$(echo "$IMAGE" | tr -d '\n\r' | xargs)
+
+        echo "🔍 Running Trivy remote scan on: $IMAGE"
+        if ! trivy image \
+          --severity "$(params.SEVERITY)" \
+          --format json \
+          $(params.ARGS) \
+          "$IMAGE" > /workspace/output/trivy-results.json; then
+          echo "❌ Trivy scan failed"
+          echo -n "-1" > $(results.vulnerabilities.path)
+          exit 1
+        fi
+
+        echo "📊 Counting vulnerabilities..."
+        vuln_count=$(jq '[.Results[].Vulnerabilities[]?] | length' /workspace/output/trivy-results.json)
+        echo "📊 Found $vuln_count vulnerabilities"
+        echo -n "$vuln_count" > /tekton/results/vulnerabilities

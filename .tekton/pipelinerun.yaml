@@ -12,6 +12,14 @@ metadata:
       (!has(body.ref) || body.ref == 'refs/heads/main' || body.ref == 'refs/heads/dev') &&
       (!has(body.head_commit) || !has(body.head_commit.author) || !body.head_commit.author.name.matches("(?i).*ci-tag-bot.*")) &&
       (!has(body.pull_request) || (body.pull_request.base.ref == 'main' || body.pull_request.base.ref == 'dev'))
+    results.tekton.dev/columns: |
+      [
+        {
+          "name": "Vulnerabilities",
+          "type": "string",
+          "jsonPath": ".status.pipelineResults[?(@.name==\"vulnerabilities\")].value"
+        }
+      ]
 spec:
   podTemplate:
     serviceAccountName: pipeline
@@ -58,31 +66,17 @@ spec:
           - name: source
             workspace: source
 
-      # - name: debug-user
-      #   taskSpec:
-      #     workspaces:
-      #       - name: source
-      #         workspace: source
-      #     steps:
-      #       - name: show-user-info
-      #         image: busybox
-      #         script: |
-      #           #!/bin/sh
-      #           echo "Current UID:"
-      #           id -u
-      #           echo "Current GID:"
-      #           id -g
-      #           echo "Permissions on /workspace/source:"
-      #           ls -ld /workspace/source
-      #   workspaces:
-      #     - name: source
-      #       workspace: source
+      - name: read-cluster-name
+        taskRef:
+          name: read-cluster-name
+        runAfter:
+          - fix-permissions
 
       - name: which-branch
         taskRef:
           name: print-branch-task
         runAfter:
-          - fix-permissions
+          - read-cluster-name
         params:
           - name: source-branch
             value: "$(params.source_branch)"
@@ -113,6 +107,9 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-lint-task
         runAfter:
@@ -126,11 +123,13 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-test-task
         runAfter:
           - go-lint
-          # - fetch-repository
         workspaces:
           - name: source
             workspace: source
@@ -140,6 +139,9 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-build-task
         runAfter:
@@ -168,6 +170,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: promote-to-prod-task
         params:
@@ -193,6 +198,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         params:
           - name: dev-version
             value: "$(tasks.extract-version-and-registry.results.dev-version)"
@@ -210,10 +218,40 @@ spec:
           - name: registry
             workspace: registry-secret
     
+      - name: vulnerability-scan
+        when:
+          - input: "$(params.runOptional)"
+            operator: in
+            values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        runAfter:
+          - buildah-build
+        taskRef:
+          name: trivy-scan
+        params:
+          - name: IMAGE_URL
+            value: "$(tasks.buildah-build.results.image-url)"
+          - name: SEVERITY
+            value: "CRITICAL,HIGH"
+          - name: ARGS
+            value: "--exit-code 0"
+        workspaces:
+          - name: registry-secret
+            workspace: registry-secret
+          - name: output
+            workspace: output
+
       - name: sync-after-promote-or-build
+        when:
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         runAfter:
           - promote-to-prod
-          - buildah-build
+          # - buildah-build
+          - vulnerability-scan
         taskRef:
           name: noop-task
 
@@ -240,6 +278,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["main", "dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: tag-version-task
         params:
@@ -310,12 +351,35 @@ spec:
         workspaces:
           - name: source
             workspace: source
-            
+
+      - name: benchmark
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        continueOn:
+          errors: true
+        params:
+          - name: openshift_host
+            value: "https://api.fmaas-platform-eval.fmaas.res.ibm.com:6443"
+          - name: openshift_namespace
+            value: "hc4ai-operator-dev"
+        taskRef:
+          name: benchmark-task 
+        runAfter:
+          - go-test-post-deploy
+
       - name: increment-versions
         when:
           - input: "$(params.source_branch)"
             operator: in
             values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         params:
           - name: source-branch
             value: "$(params.source_branch)"
@@ -347,12 +411,20 @@ spec:
             operator: in
             values: ["dev"]
         runAfter:
-          - go-test-post-deploy
+          - benchmark
         taskRef:
           name: noop-task
        
   workspaces:
     - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+    - name: output
       volumeClaimTemplate:
         spec:
           accessModes:
