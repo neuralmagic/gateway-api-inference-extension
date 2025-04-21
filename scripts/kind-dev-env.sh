@@ -22,6 +22,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Set the namespace to deploy the Gateway stack to
 : "${PROJECT_NAMESPACE:=default}"
 
+# Set the host port to map to the Gateway's inbound port (30080)
+: "${GATEWAY_HOST_PORT:=30080}"
+
 # ------------------------------------------------------------------------------
 # Setup & Requirement Checks
 # ------------------------------------------------------------------------------
@@ -63,7 +66,16 @@ done
 if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
     echo "Cluster '${CLUSTER_NAME}' already exists, re-using"
 else
-    kind create cluster --name "${CLUSTER_NAME}"
+    kind create cluster --name "${CLUSTER_NAME}" --config - << EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: ${GATEWAY_HOST_PORT}
+    protocol: TCP
+EOF
 fi
 
 # Set the kubectl context to the kind cluster
@@ -126,13 +138,9 @@ You can watch the Endpoint Picker logs with:
 
   $ kubectl --context ${KUBE_CONTEXT} logs -f deployments/endpoint-picker
 
-You can use a port-forward to access the Gateway:
-
-  $ kubectl --context ${KUBE_CONTEXT} port-forward service/inference-gateway-istio 8080:80
-
 With that running in the background, you can make requests:
 
-  $ curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+  $ curl -s -w '\n' http://localhost:${GATEWAY_HOST_PORT}/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
 
 -----------------------------------------
 EOF
