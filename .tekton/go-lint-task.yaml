@@ -26,7 +26,8 @@ spec:
           echo "⚠️ No golangci-lint config file found. Using default linters"
         fi
 
-        echo "📦 Installing dependencies with dnf..."
+        echo "📦 Installing dependencies"
+        apt-get update
         apt-get install -y jq curl
 
         echo "📥 Installing kubectl..."
