@@ -10,7 +10,7 @@ spec:
     - name: source
   steps:
     - name: run-lint
-      image: us.icr.io/ibm-hc4ai-operator/golangci-lint:v1.64.8
+      image: quay.io/projectquay/golang:1.24
       imagePullPolicy: IfNotPresent
       script: |
         #!/bin/bash
@@ -27,8 +27,7 @@ spec:
         fi
 
         echo "📦 Installing dependencies"
-        apt-get update
-        apt-get install -y jq curl
+        dnf install -y jq curl
 
         echo "📥 Installing kubectl..."
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
