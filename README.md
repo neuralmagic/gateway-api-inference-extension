@@ -52,4 +52,3 @@ Contributions are readily welcomed, follow the [dev guide](./docs/dev.md) to sta
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
 
-
