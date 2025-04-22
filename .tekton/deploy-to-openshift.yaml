@@ -62,6 +62,9 @@ spec:
         VERSION=$(params.dev-version)
       fi
 
+      # FIXME: this is manually deployed currently
+      REGISTRY_SECRET="quay-secret"
+
       echo "🔧 Using namespace: $NS"
       echo "🔧 Using project_name: $PROJECT_NAME"
       echo "🔧 Using image_tag_base: $IMAGE_TAG_BASE"
@@ -74,7 +77,7 @@ spec:
       sleep 3
 
       echo "🚀 Reinstalling OpenShift deployment..."
-      make install-openshift NAMESPACE=$NS PROJECT_NAME=$PROJECT_NAME IMAGE_TAG_BASE=$IMAGE_TAG_BASE VERSION=$VERSION
+      make install-openshift REGISTRY_SECRET=$REGISTRY_SECRET NAMESPACE=$NS PROJECT_NAME=$PROJECT_NAME IMAGE_TAG_BASE=$IMAGE_TAG_BASE VERSION=$VERSION
 
       echo "⏳ Waiting 20 seconds before verifying resources..."
       sleep 20
