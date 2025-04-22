@@ -112,6 +112,12 @@ Create the namespace:
 ```console
 kubectl create namespace ${NAMESPACE}
 ```
+> **NOTE**: the shared integration cluster currently contains a network
+> policy in `istio-system` that could prevent Envoy gateways in personal
+> namespace from communicating with `istiod.istio-system` service. If this
+> is the case, the inferernce gateway will be in `CrashLoop` state and its
+> logs will show connection timeouts to the `istiod` Service VIP.
+> You will need to add the `maistra.io/member-of=istio-system` label to
 
 You'll need to provide a `Secret` with the login credentials for your private
 repository (e.g. quay.io). It should look something like this:
