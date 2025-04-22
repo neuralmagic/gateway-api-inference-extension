@@ -8,9 +8,9 @@ We provide `Makefile` targets and development environment deployment manifests
 under the `deploy/environments` directory, which include support for
 multiple kinds of clusters:
 
-* Kubernetes In Docker (KIND)
-* Kubernetes (WIP: https://github.com/neuralmagic/gateway-api-inference-extension/issues/14)
-* OpenShift (WIP: https://github.com/neuralmagic/gateway-api-inference-extension/issues/22)
+* [Kubernetes In Docker (KIND)](#kubernetes-in-docker-(kind))
+* [Kubernetes](#kubernetes)
+* [OpenShift](#kubernetes)
 
 We support multiple different model serving platforms for testing:
 
