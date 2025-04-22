@@ -764,15 +764,15 @@ environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 ifndef NAMESPACE
 	$(error "Error: NAMESPACE is required but not set)
 endif
-	export NAMESPACE=${NAMESPACE}
+	export NAMESPACE=$(NAMESPACE)
 ifndef REGISTRY_SECRET
 	$(error "Error: REGISTRY_SECRET is required but not set)
 endif
-	export REGISTRY_SECRET=${REGISTRY_SECRET}
-	export VLLM_SIM_IMAGE=${VLLM_SIM_IMAGE}
-	export VLLM_SIM_TAG=${VLLM_SIM_TAG}
-	export EPP_IMAGE=${EPP_IMAGE}
-	export EPP_TAG=${EPP_TAG}
+	export REGISTRY_SECRET=$(REGISTRY_SECRET)
+	export VLLM_SIM_IMAGE=$(VLLM_SIM_IMAGE)
+	export VLLM_SIM_TAG=$(VLLM_SIM_TAG)
+	export EPP_IMAGE=$(EPP_IMAGE)
+	export EPP_TAG=$(EPP_TAG)
 	@echo "INFO: Creating namespace (if needed) and setting context to $(NAMESPACE)..."
 	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
 	kubectl config set-context --current --namespace=$(NAMESPACE)
