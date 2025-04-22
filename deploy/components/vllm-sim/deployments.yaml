@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-sim
+  labels:
+    app: vllm-llama3-8b-instruct
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-llama3-8b-instruct
+  template:
+    metadata:
+      labels:
+        app: vllm-llama3-8b-instruct
+        ai-aware-router-pod: "true"
+    spec:
+      containers:
+      - name: vllm
+        image: quay.io/vllm-d/vllm-sim:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--port=8000"
+        - "--model=food-review"
+        # - "--lora=lora10,lora20,lora30"
+        # - "--time-to-first-token=500"
+        ports:
+          - containerPort: 8000

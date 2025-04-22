@@ -1,31 +1,36 @@
-# Dockerfile has specific requirement to put this ARG at the beginning:
-# https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
-ARG BUILDER_IMAGE=golang:1.24
-ARG BASE_IMAGE=gcr.io/distroless/static:nonroot
+# Build Stage: using Go 1.24.1 image
+FROM quay.io/projectquay/golang:1.24 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
-## Multistage build
-FROM ${BUILDER_IMAGE} AS builder
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
+# ENV GOPROXY=https://goproxy.io,direct
 
-# Dependencies
-WORKDIR /src
-COPY go.mod go.sum ./
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
-# Sources
+# Copy the go source
 COPY cmd ./cmd
 COPY pkg ./pkg
 COPY internal ./internal
 COPY api ./api
-WORKDIR /src/cmd/epp
-RUN go build -o /epp
 
-## Multistage deploy
-FROM ${BASE_IMAGE}
+# Build
+# the GOARCH has not a default value to allow the binary be built according to the host where the command
+# was called. For example, if we call make image-build in a local env which has the Apple Silicon M1 SO
+# the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
+# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -o bin/epp cmd/epp/main.go cmd/epp/health.go
 
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM registry.access.redhat.com/ubi9/ubi:latest
 WORKDIR /
-COPY --from=builder /epp /epp
+COPY --from=builder /workspace/bin/epp /app/epp
+USER 65532:65532
 
-ENTRYPOINT ["/epp"]
+ENTRYPOINT ["/app/epp"]

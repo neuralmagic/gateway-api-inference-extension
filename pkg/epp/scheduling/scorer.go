@@ -17,7 +17,7 @@ limitations under the License.
 package scheduling
 
 import (
-	"fmt"
+	"errors"
 	"math/rand/v2"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -67,7 +67,7 @@ func (sm *ScorerMng) scoreTargets(ctx *types.Context, pods []*types.PodMetrics) 
 	}
 
 	if len(validPods) == 0 {
-		return nil, fmt.Errorf("Empty list of valid pods to score")
+		return nil, errors.New("Empty list of valid pods to score")
 	}
 
 	// add scores from all scorers

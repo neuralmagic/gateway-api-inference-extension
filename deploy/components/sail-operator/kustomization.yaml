@@ -1,0 +1,28 @@
+# ------------------------------------------------------------------------------
+# Istio Sail Operator
+#
+# This deploys the Istio Sail Operator via Helm chart to enable the creation
+# of Istio Control Planes, and ultimately Gateways. This will also deploy all
+# the Istio CRDs.
+#
+# **Warning**: This needs to be deployed before, and separately from other
+# components as it deploys CRDs. It can be deployed with:
+#
+#   $ kubectl kustomize --enable-helm deploy/components/sail-operator/ \
+#     | kubectl apply --server-side --force-conflicts -f -
+#
+# ------------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sail-operator
+
+resources:
+- namespaces.yaml
+
+helmCharts:
+- name: sail-operator
+  namespace: sail-operator
+  repo: https://istio-ecosystem.github.io/sail-operator
+  version: 1.25.1
+  includeCRDs: true

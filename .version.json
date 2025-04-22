@@ -1,0 +1,6 @@
+{
+  "dev-version": "0.0.3",
+  "dev-registry": "quay.io/vllm-d/gateway-api-inference-extension-dev",
+  "prod-version": "0.0.2",
+  "prod-registry": "quay.io/vllm-d/gateway-api-inference-extension"
+}

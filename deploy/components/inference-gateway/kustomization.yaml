@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------------------
+# Inference Gateway
+#
+# This deploys a Gateway and the Endpoint Picker (EPP), and attaches the EPP to
+# the Gateway with an EnvoyFilter.
+#
+# Add an HTTPRoute to route traffic to VLLM, or a VLLM simulator.
+#
+# **WARNING**: The EnvoyFilter contains a variable that needs to be replaced
+# with the namespace to match the EPP's Service. For now use sed to replace it,
+# e.g.:
+#
+#   $ kubectl kustomize deploy/components/inference-gateway \
+#     | sed 's/REPLACE_NAMESPACE/mynamespace/gI' \
+#     | kubectl -n mynamespace apply -f -
+# ------------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- service-accounts.yaml
+- rbac.yaml
+- destination-rules.yaml
+- inference-pools.yaml
+- inference-models.yaml
+- deployments.yaml
+- gateways.yaml
+- httproutes.yaml
+
+images:
+- name: quay.io/vllm-d/gateway-api-inference-extension/epp
+  newTag: 0.0.1
