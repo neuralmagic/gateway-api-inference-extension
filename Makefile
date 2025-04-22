@@ -645,9 +645,11 @@ check-alias: check-container-tool
 	  echo "✅ Alias is likely to work: alias $(PROJECT_NAME)='$(CONTAINER_TOOL) exec -it $(PROJECT_NAME)-container /app/$(PROJECT_NAME)'"; \
 	fi
 
+# This is being used for tekton builds in the CI/CD pipeline, to provide a
+# default namespace to do a test deployment of the Kubernetes dev environment.
 .PHONY: print-namespace
-print-namespace: ## Print the current namespace
-	@echo "$(NAMESPACE)"
+print-namespace:
+	@echo "inference-router"
 
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
@@ -752,6 +754,10 @@ endif
 # This target deploys the GIE stack in a specific namespace for development and
 # testing.
 # ------------------------------------------------------------------------------
+VLLM_SIM_IMAGE ?= quay.io/vllm-d/vllm-sim
+VLLM_SIM_TAG ?= 0.0.2
+EPP_IMAGE ?= us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/epp
+EPP_TAG ?= main
 .PHONY: environment.dev.kubernetes
 environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 	@echo "INFO: checking required vars"
@@ -763,21 +769,9 @@ ifndef REGISTRY_SECRET
 	$(error "Error: REGISTRY_SECRET is required but not set)
 endif
 	export REGISTRY_SECRET=${REGISTRY_SECRET}
-ifndef VLLM_SIM_IMAGE
-	$(error "Error: VLLM_SIM_IMAGE is required but not set)
-endif
 	export VLLM_SIM_IMAGE=${VLLM_SIM_IMAGE}
-ifndef VLLM_SIM_TAG
-	$(error "Error: VLLM_SIM_TAG is required but not set)
-endif
 	export VLLM_SIM_TAG=${VLLM_SIM_TAG}
-ifndef EPP_IMAGE
-	$(error "Error: EPP_IMAGE is required but not set)
-endif
 	export EPP_IMAGE=${EPP_IMAGE}
-ifndef EPP_TAG
-	$(error "Error: EPP_TAG is required but not set)
-endif
 	export EPP_TAG=${EPP_TAG}
 	@echo "INFO: Creating namespace (if needed) and setting context to $(NAMESPACE)..."
 	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
