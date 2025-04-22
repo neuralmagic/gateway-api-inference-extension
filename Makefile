@@ -645,9 +645,11 @@ check-alias: check-container-tool
 	  echo "✅ Alias is likely to work: alias $(PROJECT_NAME)='$(CONTAINER_TOOL) exec -it $(PROJECT_NAME)-container /app/$(PROJECT_NAME)'"; \
 	fi
 
+# This is being used for tekton builds in the CI/CD pipeline, to provide a
+# default namespace to do a test deployment of the Kubernetes dev environment.
 .PHONY: print-namespace
-print-namespace: ## Print the current namespace
-	@echo "$(NAMESPACE)"
+print-namespace:
+	@echo "inference-router"
 
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
