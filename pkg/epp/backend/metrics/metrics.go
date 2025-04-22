@@ -18,6 +18,7 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -108,12 +109,12 @@ func (p *PodMetricsClientImpl) promToPodMetrics(
 		// each metric's value is the reporting timestamp
 		// we start from the most recent metric, if there are waiting loras - we are on the full capacity, no need to find less recent metric values
 		// if number of loras in running loras is less than max_lora value, go to next less recent metric and get running + waiting loras from it
-		// if number of loras achives max_loras - stop, otherwize continue the process untill we will have enough lora adapters
+		// if number of loras achives max_loras - stop, otherwize continue the process until we will have enough lora adapters
 
 		latestLoraMetrics, latestTimestamp, err := p.getNextLatestLoraMetric(metricFamilies, 0.0)
 		errs = multierr.Append(errs, err)
 
-		if latestLoraMetrics != nil && len(latestLoraMetrics) > 0 {
+		if len(latestLoraMetrics) > 0 {
 			// first read max numbers of loras to use it while active loras reading
 			maxLoras, err := p.getMaxLoras(latestLoraMetrics[0])
 			errs = multierr.Append(errs, err)
@@ -203,7 +204,7 @@ func (p *PodMetricsClientImpl) getMaxLoras(metrics *dto.Metric) (int, error) {
 			}
 		}
 	}
-	return 0, fmt.Errorf("Lora max is not defined")
+	return 0, errors.New("lora max is not defined")
 }
 
 // getLatestLoraMetric gets latest lora metric series in gauge metric family `vllm:lora_requests_info`
