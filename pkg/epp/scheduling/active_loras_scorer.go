@@ -53,6 +53,10 @@ func (s ActiveLorasScorer) ScoreTargets(ctx *types.Context, pods []*types.PodMet
 			// lora is running on this pod
 			scoredPods[i].Score = s.weight
 			logger.Info("Lora is running on a pod", "lora", ctx.Req.Model, "pod", pod.NamespacedName.String())
+		} else if _, ok := pod.Metrics.WaitingModels[ctx.Req.Model]; ok {
+			// lora is waiting on this pod
+			scoredPods[i].Score = s.weight
+			logger.Info("Lora is waiting on a pod", "lora", ctx.Req.Model, "pod", pod.NamespacedName.String())
 		}
 		scoredPods[i].Pod = pod
 	}

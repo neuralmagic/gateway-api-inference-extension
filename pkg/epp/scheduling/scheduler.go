@@ -34,7 +34,6 @@ type Config struct {
 	KVCacheThreshold       float64
 	QueueThresholdCritical int
 	QueueingThresholdLoRA  int
-	LoraAffinityThreshold  float64
 }
 
 const (
@@ -42,7 +41,6 @@ const (
 	defaultKVCacheThreshold       = 0.8
 	defaultQueueThresholdCritical = 5
 	defaultQueueingThresholdLoRA  = 128
-	defaultLoraAffinityThreshold  = 0.999
 )
 
 // LoadConfig loads configuration from environment variables
@@ -54,7 +52,6 @@ func LoadConfig() Config {
 		KVCacheThreshold:       envutil.GetEnvFloat("KV_CACHE_THRESHOLD", defaultKVCacheThreshold, baseLogger),
 		QueueThresholdCritical: envutil.GetEnvInt("QUEUE_THRESHOLD_CRITICAL", defaultQueueThresholdCritical, baseLogger),
 		QueueingThresholdLoRA:  envutil.GetEnvInt("QUEUING_THRESHOLD_LORA", defaultQueueingThresholdLoRA, baseLogger),
-		LoraAffinityThreshold:  envutil.GetEnvFloat("LORA_AFFINITY_THRESHOLD", defaultLoraAffinityThreshold, baseLogger),
 	}
 
 	baseLogger.V(logutil.DEFAULT).Info("Scheduler configuration loaded", "config", config)
@@ -68,21 +65,15 @@ var (
 	lowLatencyFilter = &decisionTreeFilter{
 		current: lowQueueFilter,
 		nextOnSuccess: &decisionTreeFilter{
-			current: loRAAffinityFilter,
+			current: leastQueueFilter,
 			nextOnSuccessOrFailure: &decisionTreeFilter{
-				current: leastQueueFilter,
-				nextOnSuccessOrFailure: &decisionTreeFilter{
-					current: leastKVCacheFilter,
-				},
+				current: leastKVCacheFilter,
 			},
 		},
 		nextOnFailure: &decisionTreeFilter{
 			current: leastQueueFilter,
 			nextOnSuccessOrFailure: &decisionTreeFilter{
-				current: loRAAffinityFilter,
-				nextOnSuccessOrFailure: &decisionTreeFilter{
-					current: leastKVCacheFilter,
-				},
+				current: leastKVCacheFilter,
 			},
 		},
 	}

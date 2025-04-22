@@ -19,8 +19,6 @@ package scheduling
 import (
 	"errors"
 	"math"
-	"math/rand"
-	"time"
 
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
@@ -196,65 +194,6 @@ func leastKVCacheFilterFunc(ctx *types.Context, pods []*types.PodMetrics) ([]*ty
 		}
 	}
 	return filtered, nil
-}
-
-var loRAAffinityFilter = &basicFilter{
-	name:   "affinity LoRA",
-	filter: loRASoftAffinityFilterFunc,
-}
-
-// loRASoftAffinityPredicate implements a pod selection strategy that prioritizes pods
-// with existing LoRA model affinity while allowing for load balancing through randomization.
-//
-// The function works by:
-// 1. Separating pods into two groups: those with target model affinity and those with available capacity
-// 2. Using a probability threshold to sometimes select from non-affinity pods to enable load balancing
-// 3. Falling back to whatever group has pods if one group is empty
-//
-// Parameters:
-//   - logger: Logger interface for diagnostic output
-//   - req: LLM request containing the resolved target model
-//   - pods: Slice of pod metrics to filter
-//
-// Returns:
-//   - Filtered slice of pod metrics based on affinity and availability
-//   - Error if any issues occur during filtering
-func loRASoftAffinityFilterFunc(ctx *types.Context, pods []*types.PodMetrics) ([]*types.PodMetrics, error) {
-
-	// Pre-allocate slices with estimated capacity
-	filtered_affinity := make([]*types.PodMetrics, 0, len(pods))
-	filtered_available := make([]*types.PodMetrics, 0, len(pods))
-
-	// Categorize pods based on affinity and availability
-	for _, pod := range pods {
-		_, active := pod.ActiveModels[ctx.Req.ResolvedTargetModel]
-		_, waiting := pod.WaitingModels[ctx.Req.ResolvedTargetModel]
-
-		if active || waiting {
-			filtered_affinity = append(filtered_affinity, pod)
-		} else if len(pod.ActiveModels)+len(pod.WaitingModels) < pod.MaxActiveModels {
-			filtered_available = append(filtered_available, pod)
-		}
-	}
-
-	// Use crypto/rand for better randomization in production environments
-	randSource := rand.NewSource(time.Now().UnixNano())
-	randGen := rand.New(randSource)
-
-	// If both groups have pods, use probability to select which group to return
-	if len(filtered_affinity) > 0 && len(filtered_available) > 0 {
-		if randGen.Float64() < config.LoraAffinityThreshold {
-			return filtered_affinity, nil
-		}
-		return filtered_available, nil
-	}
-
-	// Return whichever group has pods
-	if len(filtered_affinity) > 0 {
-		return filtered_affinity, nil
-	}
-
-	return filtered_available, nil
 }
 
 // podPredicate is a filter function to check whether a pod is desired.

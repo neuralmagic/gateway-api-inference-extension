@@ -26,7 +26,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"go.uber.org/multierr"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -105,7 +104,6 @@ func (p *PodMetricsClientImpl) promToPodMetrics(
 
 	// Handle LoRA metrics (only if all LoRA MetricSpecs are present)
 	if p.MetricMapping.LoraRequestInfo != nil {
-		logger := log.FromContext(context.TODO())
 		// 'vllm:lora_requests_info metrics contains list of different running loras permutations,
 		// each metric's value is the reporting timestamp
 		// we start from the most recent metric, if there are waiting loras - we are on the full capacity, no need to find less recent metric values
@@ -161,7 +159,6 @@ func (p *PodMetricsClientImpl) promToPodMetrics(
 				}
 			}
 		}
-		logger.Info(">>> In promToPodMetrics, updated loras", "active", updated.ActiveModels, "waiting", updated.WaitingModels)
 	}
 
 	return updated, errs

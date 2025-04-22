@@ -85,7 +85,7 @@ func NewDatastore(parentCtx context.Context, pmf *backendmetrics.PodMetricsFacto
 		pmf:             pmf,
 	}
 
-	go store.cleanupSessions(sessionKeepAliveCheckFrequency, sessionKeepAliveTime, parentCtx)
+	go store.cleanupSessions(sessionKeepAliveCheckFrequency, sessionKeepAliveTime)
 
 	return store
 }
@@ -308,10 +308,9 @@ type sessionInfo struct {
 	lru time.Time
 }
 
-// cleanup Cleans up the set of stored session information by removing information
-// of old sessions.
-func (ds *datastore) cleanupSessions(keepAliveCheckFrequency time.Duration, sessionKeepAlive time.Duration, ctx context.Context) {
-	logger := log.FromContext(ctx)
+// cleanup Cleans up the set of stored session information by removing information of old sessions.
+func (ds *datastore) cleanupSessions(keepAliveCheckFrequency time.Duration, sessionKeepAlive time.Duration) {
+	logger := log.FromContext(ds.parentCtx)
 
 	logger.Info("Session-affinity cleanup started")
 	ticker := time.NewTicker(keepAliveCheckFrequency)
@@ -319,11 +318,11 @@ func (ds *datastore) cleanupSessions(keepAliveCheckFrequency time.Duration, sess
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ds.parentCtx.Done():
 			logger.Info("Session-affinity cleanup stopped:")
 			return
 		case now := <-ticker.C:
-			logger.Info("Session affinity checking")
+			logger.Info("Session affinity cleanup")
 			ds.sessions.Range(
 				func(sessionID any, rawSessionInfo any) bool {
 					if sessionInfo, ok := rawSessionInfo.(*sessionInfo); ok {

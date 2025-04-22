@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	k8stypes "k8s.io/apimachinery/pkg/types"
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
@@ -201,108 +200,5 @@ func TestFilterFunc(t *testing.T) {
 				t.Errorf("Unexpected output (-want +got): %v", diff)
 			}
 		})
-	}
-}
-
-// TestLoRASoftAffinityDistribution tests that the loRASoftAffinityFilter function
-// properly distributes requests according to the loraAffinityThreshold
-func TestLoRASoftAffinityDistribution(t *testing.T) {
-	const (
-		testModelName     = "test-model"
-		testAffinityModel = "test-affinity-model"
-		numIterations     = 10000
-		tolerancePercent  = 5.0 // Allow 5% tolerance from expected distribution
-	)
-
-	// Save original config value to restore later
-	originalThreshold := config.LoraAffinityThreshold
-
-	// Set a specific test value for this test
-	testThreshold := 0.75 // 75%
-	config.LoraAffinityThreshold = testThreshold
-
-	// Ensure we restore the original threshold when test completes
-	defer func() {
-		config.LoraAffinityThreshold = originalThreshold
-	}()
-
-	// Create a test request and pods
-	req := &types.LLMRequest{
-		Model:               testAffinityModel,
-		ResolvedTargetModel: testAffinityModel,
-	}
-
-	// Test setup: One affinity pod and one available pod
-	pods := []*types.PodMetrics{
-		{
-			Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "affinity-pod"}},
-			Metrics: &backendmetrics.Metrics{
-				MaxActiveModels: 2,
-				ActiveModels: map[string]int{
-					testAffinityModel: 1,
-				},
-			},
-		},
-		{
-			Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "available-pod"}},
-			Metrics: &backendmetrics.Metrics{
-				MaxActiveModels: 2,
-				ActiveModels:    map[string]int{},
-			},
-		},
-	}
-	ctx := types.NewContext(context.Background(), req, pods)
-
-	// Run the filter function multiple times and count the results
-	affinityCount := 0
-	availableCount := 0
-
-	// Use the test threshold value
-	expectedAffinityPercent := config.LoraAffinityThreshold * 100
-	expectedAvailabilityPercent := 100 - expectedAffinityPercent
-
-	for i := 0; i < numIterations; i++ {
-		result, err := loRASoftAffinityFilterFunc(ctx, pods)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		// Check which type of pod was returned
-		if len(result) != 1 {
-			t.Fatalf("Expected exactly one pod in result, got %d", len(result))
-		}
-
-		// Identify if the returned pod is the affinity pod or available pod
-		if _, exists := result[0].GetMetrics().ActiveModels[testAffinityModel]; exists {
-			affinityCount++
-		} else {
-			availableCount++
-		}
-	}
-
-	// Calculate the actual percentages
-	actualAffinityPercent := float64(affinityCount) / float64(numIterations) * 100
-	actualAvailablePercent := float64(availableCount) / float64(numIterations) * 100
-
-	// Check if the distribution matches expected threshold within tolerance
-	affinityLowerBound := expectedAffinityPercent - tolerancePercent
-	affinityUpperBound := expectedAffinityPercent + tolerancePercent
-
-	availableLowerBound := expectedAvailabilityPercent - tolerancePercent
-	availableUpperBound := expectedAvailabilityPercent + tolerancePercent
-
-	t.Logf("Distribution results over %d iterations:", numIterations)
-	t.Logf("Expected affinity percent: %.2f%% (threshold: %.2f)", expectedAffinityPercent, config.LoraAffinityThreshold)
-	t.Logf("Expected availability percent: %.2f%% (threshold: %.2f)", expectedAvailabilityPercent, config.LoraAffinityThreshold)
-	t.Logf("Actual affinity percent: %.2f%% (%d out of %d)", actualAffinityPercent, affinityCount, numIterations)
-	t.Logf("Actual available percent: %.2f%% (%d out of %d)", actualAvailablePercent, availableCount, numIterations)
-
-	if actualAffinityPercent < affinityLowerBound || actualAffinityPercent > affinityUpperBound {
-		t.Errorf("Affinity selection percent %.2f%% outside expected range %.2f%% to %.2f%%",
-			actualAffinityPercent, affinityLowerBound, affinityUpperBound)
-	}
-	if actualAvailablePercent < availableLowerBound || actualAvailablePercent > availableUpperBound {
-		t.Errorf("Availability selection percent %.2f%% outside expected range %.2f%% to %.2f%%",
-			actualAvailablePercent, availableLowerBound, availableUpperBound)
 	}
 }
