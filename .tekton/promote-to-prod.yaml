@@ -13,13 +13,13 @@ spec:
     - name: dev_image_tag_base
       description: "Development image tag base"
   workspaces:
-    - name: registry
+    - name: registry-secret
       description: "Registry secret workspace (must include .dockerconfigjson)"
   steps:
     - name: promote
       image: quay.io/skopeo/stable:latest
       imagePullPolicy: IfNotPresent
-      workingDir: /workspace/registry
+      workingDir: /workspace/registry-secret
       script: |
         #!/bin/sh
         set -e
