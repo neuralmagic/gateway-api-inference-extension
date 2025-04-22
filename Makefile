@@ -649,7 +649,7 @@ check-alias: check-container-tool
 # default namespace to do a test deployment of the Kubernetes dev environment.
 .PHONY: print-namespace
 print-namespace:
-	@echo "inference-router"
+	@echo "hc4ai-operator"
 
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
