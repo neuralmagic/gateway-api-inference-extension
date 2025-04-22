@@ -69,13 +69,15 @@ recent changes are refleted.
 A Kubernetes (or OpenShift) cluster can be used for development and testing.
 There is a cluster-level infrastructure deployment that needs to be managed,
 and then development environments can be created on a per-namespace basis to
-enable sharing the cluster with multiple developers if desired.
+enable sharing the cluster with multiple developers (or feel free to just use
+the `default` namespace if the cluster is private/personal).
 
 ### Setup - Infrastructure
 
 > **WARNING**: In shared cluster situations you should probably not be
 > running this unless you're the cluster admin and you're _certain_ it's you
-> that should be running this.
+> that should be running this, as this can be disruptive to other developers
+> in the cluster.
 
 The following will deploy all the infrastructure-level requirements (e.g. CRDs,
 Operators, etc) to support the namespace-level development environments:
@@ -84,15 +86,15 @@ Operators, etc) to support the namespace-level development environments:
 make environment.dev.kubernetes.infrastructure
 ```
 
-When the `deploy/environments/dev/kubernetes-infra` deployment's components are
-updated, this will need to be re-deployed.
+Whenever the `deploy/environments/dev/kubernetes-infra` deployment's components
+are updated, this will need to be re-deployed.
 
 ### Setup - Developer Environment
 
 > **WARNING**: This setup is currently very manual in regards to container
 > images for the VLLM simulator and the EPP. It is expected that you build and
 > push images for both to your own private registry. In future iterations, we
-> will be automating this further to make it simpler.
+> will be providing automation around this to make it simpler.
 
 To deploy a development environment to the cluster you'll need to explicitly
 provide a namespace. This can be `default` if this is your personal cluster,
@@ -101,6 +103,9 @@ but on a shared cluster you should pick something unique. For example:
 ```console
 export NAMESPACE=annas-dev-environment
 ```
+
+> **NOTE**: You could also use a tool like `uuidgen` to come up with a unique
+> name (e.g. `anna-0d03d66c-8880-4000-88b7-22f1d430f7d0`).
 
 Create the namespace:
 
@@ -117,7 +122,7 @@ kind: Secret
 metadata:
   name: anna-pull-secret
 data:
-  .dockerconfigjson: <YOUR_TOKEN_HERE>
+  .dockerconfigjson: <YOUR_ENCODED_CONFIG_HERE>
 type: kubernetes.io/dockerconfigjson
 ```
 
@@ -127,7 +132,7 @@ Apply that to your namespace:
 kubectl -n ${NAMESPACE} apply -f secret.yaml
 ```
 
-Export the name of the secret to the environment:
+Export the name of the `Secret` to the environment:
 
 ```console
 export REGISTRY_SECRET=anna-pull-secret
@@ -164,7 +169,8 @@ kubectl -n ${NAMESPACE} port-forward service/inference-gateway-istio 8080:80
 And making requests with `curl`:
 
 ```console
-curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+  -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
 ```
 
 #### Development Cycle
@@ -192,6 +198,9 @@ $CONTAINER_RUNTIME tag quay.io/vllm-d/gateway-api-inference-extension/epp:$TAG \
     <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 $CONTAINER_RUNTIME push <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 ```
+
+> **NOTE**: `$CONTAINER_RUNTIME` can be configured or replaced with whatever your
+> environment's standard container runtime is (e.g. `podman`, `docker`).
 
 Then you can re-deploy the environment with the new changes (don't forget all
 the required env vars):
