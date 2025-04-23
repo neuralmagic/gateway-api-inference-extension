@@ -6,6 +6,7 @@ rules:
 - apiGroups:
   - "inference.networking.x-k8s.io"
   resources:
+  - "inferencepools"
   - "inferencemodels"
   verbs:
   - "get"
@@ -15,14 +16,6 @@ rules:
   - ""
   resources:
   - "pods"
-  verbs:
-  - "get"
-  - "watch"
-  - "list"
-- apiGroups:
-  - "inference.networking.x-k8s.io"
-  resources:
-  - "inferencepools"
   verbs:
   - "get"
   - "watch"
