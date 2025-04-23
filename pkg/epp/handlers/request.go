@@ -134,6 +134,8 @@ func (s *StreamingServer) HandleRequestBody(
 
 func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *RequestContext, req *extProcPb.ProcessingRequest_RequestHeaders) error {
 	reqCtx.RequestReceivedTimestamp = time.Now()
+	logger := log.FromContext(ctx)
+	logger.V(logutil.TRACE).Info("Headers Handler", "request", req)
 
 	for _, header := range req.RequestHeaders.Headers.GetHeaders() {
 		value := string(header.RawValue)
@@ -159,5 +161,8 @@ func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *Requ
 		endpoint := pod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
 		s.populateRequestHeaderResponse(reqCtx, endpoint, 0)
 	}
+
+	logger.V(logutil.TRACE).Info("Headers Handler", "handler", "complete")
+
 	return nil
 }
