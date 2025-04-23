@@ -81,6 +81,9 @@ func (s *StreamingServer) HandleResponseBody(
 			},
 		},
 	}
+
+	logger.V(logutil.TRACE).Info("Handle Response Body", "reqCtx", reqCtx)
+
 	return reqCtx, nil
 }
 

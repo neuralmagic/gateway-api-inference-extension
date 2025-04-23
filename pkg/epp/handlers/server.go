@@ -322,6 +322,7 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 // Order of requests matter in FULL_DUPLEX_STREAMING. For both request and response, the order of response sent back MUST be: Header->Body->Trailer, with trailer being optional.
 func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProcessor_ProcessServer, logger logr.Logger) error {
 	loggerTrace := logger.V(logutil.TRACE)
+	loggerTrace.Info("updateStateAndSendIfNeeded", "step", "started")
 	// No switch statement as we could send multiple responses in one pass.
 	if r.RequestState == RequestReceived && r.reqHeaderResp != nil {
 		loggerTrace.Info("Sending request header response", "obj", r.reqHeaderResp)
@@ -334,6 +335,7 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 	if r.RequestState == HeaderRequestResponseComplete && r.reqBodyResp != nil {
 		loggerTrace.Info("Sending request body response")
 		if err := srv.Send(r.reqBodyResp); err != nil {
+			loggerTrace.Info("failed to send response back to Envoy", "err", err)
 			return status.Errorf(codes.Unknown, "failed to send response back to Envoy: %v", err)
 		}
 		r.RequestState = BodyRequestResponsesComplete
@@ -345,8 +347,10 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 	if r.RequestState == BodyRequestResponsesComplete && r.reqTrailerResp != nil {
 		// Trailers in requests are not guaranteed
 		if err := srv.Send(r.reqTrailerResp); err != nil {
+			loggerTrace.Info("failed to send response back to Envoy", "err", err)
 			return status.Errorf(codes.Unknown, "failed to send response back to Envoy: %v", err)
 		}
+		loggerTrace.Info("sent reqTrailerResp back to Envoy", "reqTrailerResp", r.reqTrailerResp)
 	}
 	if r.RequestState == ResponseRecieved && r.respHeaderResp != nil {
 		loggerTrace.Info("Sending response header response", "obj", r.respHeaderResp)
@@ -354,6 +358,7 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 			return status.Errorf(codes.Unknown, "failed to send response back to Envoy: %v", err)
 		}
 		r.RequestState = HeaderResponseResponseComplete
+		loggerTrace.Info("send respHeaderResp", "reqHeaderResp", r.reqHeaderResp)
 	}
 	if r.RequestState == HeaderResponseResponseComplete && r.respBodyResp != nil {
 		loggerTrace.Info("Sending response body response")
@@ -365,15 +370,19 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 		if body.ResponseBody.Response.GetBodyMutation().GetStreamedResponse().GetEndOfStream() {
 			r.RequestState = BodyResponseResponsesComplete
 		}
+		loggerTrace.Info("dumping the response so a new stream message can begin")
 		// Dump the response so a new stream message can begin
 		r.respBodyResp = nil
 	}
 	if r.RequestState == BodyResponseResponsesComplete && r.respTrailerResp != nil {
 		// Trailers in requests are not guaranteed
 		if err := srv.Send(r.respTrailerResp); err != nil {
+			loggerTrace.Info("failed to send response back to Envoy", "err", err)
 			return status.Errorf(codes.Unknown, "failed to send response back to Envoy: %v", err)
 		}
+		loggerTrace.Info("sent respTrailerResp", "respTrailerResp", r.respTrailerResp)
 	}
+	loggerTrace.Info("updateStateAndSendIfNeeded", "step", "complete")
 	return nil
 }
 
