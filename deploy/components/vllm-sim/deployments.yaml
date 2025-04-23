@@ -22,7 +22,10 @@ spec:
         args:
         - "--port=8000"
         - "--model=food-review"
-        # - "--lora=lora10,lora20,lora30"
-        # - "--time-to-first-token=500"
         ports:
-          - containerPort: 8000
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8000"
