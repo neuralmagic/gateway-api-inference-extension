@@ -775,13 +775,13 @@ endif
 	export EPP_TAG=$(EPP_TAG)
 	@echo "INFO: Creating namespace (if needed) and setting context to $(NAMESPACE)..."
 	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
-	kubectl config set-context --current --namespace=$(NAMESPACE)
 	@echo "INFO: Deploying Development Environment in namespace $(NAMESPACE)"
 	kustomize build deploy/environments/dev/kubernetes | envsubst | kubectl -n $(NAMESPACE) apply -f -
 	@echo "INFO: Waiting for Pods in namespace $(NAMESPACE) to become ready"
 	kubectl -n $(NAMESPACE) wait --for=condition=Ready --all pods --timeout=300s
 	@echo "INFO: Waiting for Gateway in namespace $(NAMESPACE) to become ready"
 	kubectl -n $(NAMESPACE) wait gateway/inference-gateway --for=condition=Programmed --timeout=60s
+	@echo "INFO: Development environment deployed to namespace $(NAMESPACE)"
 
 # ------------------------------------------------------------------------------
 # Kubernetes Development Environment - Teardown
