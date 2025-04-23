@@ -10,14 +10,12 @@ spec:
       containers:
       - name: epp
         args:
-        - -poolNamespace
-        - ${NAMESPACE}
-        - -refreshMetricsInterval
-        - "500ms"
         - -poolName
         - "vllm-llama3-8b-instruct"
+        - -poolNamespace
+        - ${NAMESPACE}
         - -v
-        - "4"
+        - "5"
         - --zap-encoder
         - "json"
         - -grpcPort
