@@ -19,4 +19,5 @@ resources:
 - ../../../components/inference-gateway/
 
 patches:
-- path: gateway.yaml
+- path: patch-deployments.yaml
+- path: patch-gateways.yaml

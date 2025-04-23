@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: endpoint-picker
+spec:
+  template:
+    spec:
+      containers:
+      - name: epp
+        args:
+        - -poolName
+        - "vllm-llama3-8b-instruct"
+        - -poolNamespace
+        - "default"
+        - -v
+        - "5"
+        - --zap-encoder
+        - "json"
+        - -grpcPort
+        - "9002"
+        - -grpcHealthPort
+        - "9003"
