@@ -193,6 +193,9 @@ export EPP_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
 export EPP_TAG="<YOUR_TAG>"
 ```
 
+> NOTE: you can set above images to the prebuilt images on quay.io.
+> Just note that the EPP image is not using the `/epp` suffix.
+
 Once all this is set up, you can deploy the environment:
 
 ```console
@@ -203,7 +206,7 @@ This will deploy the entire stack to whatever namespace you chose. You can test
 by exposing the inference `Gateway` via port-forward:
 
 ```console
-kubectl -n ${NAMESPACE} port-forward service/inference-gateway-istio 8080:80
+kubectl -n ${NAMESPACE} port-forward service/inference-gateway 8080:80
 ```
 
 And making requests with `curl`:
