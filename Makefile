@@ -428,7 +428,7 @@ test: check-ginkgo ## Run tests
 post-deploy-test: ## Run post deployment tests
 	echo Success!
 	@echo "Post-deployment tests passed."
-	
+
 .PHONY: lint
 lint: check-golangci-lint ## Run lint
 	@printf "\033[33;1m==== Running linting ====\033[0m\n"
@@ -776,15 +776,15 @@ environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 # ------------------------------------------------------------------------------
 # Kubernetes Development Environment - Teardown
 #
-# Tears down the namespace, and therefore the development environment.
+# Tears down the development environment.
 # ------------------------------------------------------------------------------
 .PHONY: clean.environment.dev.kubernetes
 clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 ifndef NAMESPACE
 	$(error "Error: NAMESPACE is required but not set")
 endif
-	@echo "INFO: deleting namespace $(NAMESPACE)"
-	kubectl delete namespace $(NAMESPACE)
+	@echo "INFO: cleaning up dev environment in $(NAMESPACE)"
+	kustomize build deploy/environments/dev/kubernetes-kgateway | envsubst | kubectl -n "${NAMESPACE}" delete -f -
 
 # -----------------------------------------------------------------------------
 # TODO: these are old aliases that we still need for the moment, but will be

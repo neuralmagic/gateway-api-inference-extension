@@ -43,7 +43,7 @@ make environment.dev.kind
 
 This will create a `kind` cluster (or re-use an existing one) using the system's
 local container runtime and deploy the development stack into the `default`
-namespace. 
+namespace.
 
 There are several ways to access the gateway:
 
@@ -56,7 +56,7 @@ $ kubectl --context kind-gie-dev port-forward service/inference-gateway 8080:80
 > **Warning**: This method doesn't work on `podman` correctly, as `podman` support
 > with `kind` is not fully implemented yet.
 ```sh
-# Determine the k8s node address 
+# Determine the k8s node address
 $ kubectl --context kind-gie-dev get node -o yaml | grep address
 # The service is accessible over port 80 of the worker IP address.
 ```
@@ -64,7 +64,7 @@ $ kubectl --context kind-gie-dev get node -o yaml | grep address
 **LoadBalancer**
 
 ```sh
-# Install and run cloud-provider-kind: 
+# Install and run cloud-provider-kind:
 $ go install sigs.k8s.io/cloud-provider-kind@latest && cloud-provider-kind &
 $ kubectl --context kind-gie-dev get service inference-gateway
 # Wait for the LoadBalancer External-IP to become available. The service is accessible over port 80.
@@ -250,3 +250,20 @@ make environment.dev.kubernetes
 ```
 
 And test the changes.
+
+### Cleanup Environment
+
+To clean up the development environment and remove all deployed resources in your namespace, run:
+
+```sh
+make clean.environment.dev.kubernetes
+```
+
+**Warning**: This cleanup doesn't remove any custom pull `Secrets` you may have added. If you are
+done with this environment, you may want to remove those manually as well.
+
+If you also want to remove the namespace entirely, run:
+
+```sh
+kubectl delete namespace ${NAMESPACE}
+```
