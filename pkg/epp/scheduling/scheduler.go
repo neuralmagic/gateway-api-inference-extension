@@ -72,7 +72,7 @@ func NewScheduler(datastore Datastore) *Scheduler {
 		datastore:           datastore,
 		preSchedulePlugins:  []types.PreSchedule{},
 		postSchedulePlugins: []types.PostSchedule{},
-		scorers:             []types.Scorer{},
+		scorers:             []types.Scorer{&SessionAffinityScorer{1.0, datastore}},
 		filters:             []types.Filter{defaultPlugin},
 		picker:              &maxScorePicker{},
 	}
