@@ -146,5 +146,7 @@ With that running in the background, you can make requests:
 
   $ curl -s -w '\n' http://localhost:${GATEWAY_HOST_PORT}/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
 
+See DEVELOPMENT.md for additional access methods if the above fails.
+
 -----------------------------------------
 EOF

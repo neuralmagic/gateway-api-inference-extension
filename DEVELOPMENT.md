@@ -43,8 +43,39 @@ make environment.dev.kind
 
 This will create a `kind` cluster (or re-use an existing one) using the system's
 local container runtime and deploy the development stack into the `default`
-namespace. Instrutions will be provided on how to access the `Gateway` and send
-requests for testing.
+namespace. 
+
+There are several ways to access the gateway:
+
+**Port forward**:
+```sh
+$ kubectl --context kind-gie-dev get pods
+...
+$ kubectl --context kind-gie-dev port-forward pod/inference-gateway-XYZ123 8080:8080
+```
+
+**NodePort `inference-gateway-istio`**
+
+```sh
+# Determine the k8s node address 
+$ kubectl --context kind-gie-dev get node | grep address
+# The service is accessible over port 80 of the worker IP address.
+```
+
+**LoadBalancer**
+
+```sh
+# Install and run cloud-provider-kind: 
+$ go install sigs.k8s.io/cloud-provider-kind@latest && cloud-provider-kind &
+$ kubectl --context kind-gie-dev get service inference-gateway
+# Wait for the LoadBalancer External-IP to become available. The service is accessible over port 80.
+```
+
+You can now make requests macthing the IP:port of one of the access mode above:
+
+```sh
+$ curl -s -w '\n' http://<IP:port>/v1/completions -H 'Content-Type: application/json' -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+```
 
 > **NOTE**: If you require significant customization of this environment beyond
 > what the standard deployment provides, you can use the `deploy/components`
