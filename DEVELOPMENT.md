@@ -49,13 +49,12 @@ There are several ways to access the gateway:
 
 **Port forward**:
 ```sh
-$ kubectl --context kind-gie-dev get pods
-...
-$ kubectl --context kind-gie-dev port-forward pod/inference-gateway-XYZ123 8080:8080
+$ kubectl --context kind-gie-dev port-forward service/inference-gateway 8080:80
 ```
 
 **NodePort `inference-gateway-istio`**
-
+> **Warning**: This method doesn't work on `podman` correctly, as `podman` support
+> with `kind` is not fully implemented yet.
 ```sh
 # Determine the k8s node address 
 $ kubectl --context kind-gie-dev get node | grep address
