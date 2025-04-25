@@ -178,12 +178,29 @@ Export the name of the `Secret` to the environment:
 export REGISTRY_SECRET=anna-pull-secret
 ```
 
-Now you need to provide several other environment variables. You'll need to
-indicate the location and tag of the `vllm-sim` image:
+Set the `VLLM_MODE` environment variable based on which version of vLLM you want to deploy:
+
+- `vllm-sim`: Lightweight simulator for simple environments
+- `vllm`: Full vLLM model server for real inference
+- `vllm-p2p`: Full vLLM with LMCache P2P support for distributed KV caching
+
+```console
+export VLLM_MODE=vllm-sim  # or vllm / vllm-p2p
+```
+Each mode has default image values, but you can override them:
+
+For vllm-sim:
 
 ```console
 export VLLM_SIM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
 export VLLM_SIM_TAG="<YOUR_TAG>"
+```
+
+For vllm and vllm-p2p:
+
+```console
+export VLLM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
+export VLLM_TAG="<YOUR_TAG>"
 ```
 
 The same thing will need to be done for the EPP:
@@ -203,7 +220,7 @@ This will deploy the entire stack to whatever namespace you chose. You can test
 by exposing the inference `Gateway` via port-forward:
 
 ```console
-kubectl -n ${NAMESPACE} port-forward service/inference-gateway-istio 8080:80
+kubectl -n ${NAMESPACE} port-forward service/inference-gateway 8080:80
 ```
 
 And making requests with `curl`:

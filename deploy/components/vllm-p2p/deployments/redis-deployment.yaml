@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${REDIS_NAME}
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: redis-lookup-server
+spec:
+  replicas: ${REDIS_REPLICA_COUNT}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/component: redis-lookup-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: redis-lookup-server
+    spec:
+      containers:
+        - name: lookup-server
+          image: ${REDIS_IMAGE}:${REDIS_TAG}
+          imagePullPolicy: Always
+          command:
+            - redis-server
+          ports:
+            - containerPort: ${REDIS_TARGET_PORT}
