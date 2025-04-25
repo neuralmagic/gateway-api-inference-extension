@@ -7,7 +7,6 @@ resources:
   - deployments/vllm-deployment.yaml
   - deployments/redis-deployment.yaml
   - service/redis-service.yaml
-  - pvc/volume.yaml
   - deployments/secret.yaml
 
 images:
@@ -17,14 +16,3 @@ images:
   - name: redis
     newName: ${REDIS_IMAGE}
     newTag: ${REDIS_TAG}
-
-configMapGenerator:
-  - name: model-config
-    literals:
-      - MODEL_NAME=${MODEL_NAME}
-      - MODEL_LABEL=${MODEL_LABEL}
-      - POOL_LABEL=${POOL_LABEL}
-      - REDIS_ENABLED=${REDIS_ENABLED}
-
-generatorOptions:
-  disableNameSuffixHash: true

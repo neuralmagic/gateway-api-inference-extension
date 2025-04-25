@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${REDIS_NAME}
+  name: ${REDIS_SVC_NAME}
   labels:
     app.kubernetes.io/name: redis
     app.kubernetes.io/component: redis-lookup-server
@@ -20,8 +20,36 @@ spec:
       containers:
         - name: lookup-server
           image: ${REDIS_IMAGE}:${REDIS_TAG}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command:
             - redis-server
           ports:
-            - containerPort: ${REDIS_TARGET_PORT}
+            - name: redis-port
+              containerPort: ${REDIS_TARGET_PORT}
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: 10G
+            requests:
+              cpu: "4"
+              memory: 8G
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   capabilities:
+          #     drop:
+          #       - ALL

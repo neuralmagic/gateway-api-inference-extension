@@ -6,6 +6,6 @@ resources:
 
 images:
 - name: quay.io/vllm-d/vllm-d-dev:0.0.2
-  newName: ${VLLM_P2P_IMAGE}
-  newTag: ${VLLM_P2P_TAG}
+  newName: ${VLLM_IMAGE}
+  newTag: ${VLLM_TAG}
 

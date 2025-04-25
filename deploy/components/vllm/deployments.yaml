@@ -3,14 +3,14 @@ kind: Deployment
 metadata:
   name: ${VLLM_DEPLOYMENT_NAME}
 spec:
-  replicas: 3
+  replicas: ${VLLM_REPLICA_COUNT}
   selector:
     matchLabels:
-      app: vllm-llama3-8b-instruct
+      app: ${POOL_NAME}
   template:
     metadata:
       labels:
-        app: vllm-llama3-8b-instruct
+        app: ${POOL_NAME}
     spec:
       securityContext:
         runAsUser: ${PROXY_UID}

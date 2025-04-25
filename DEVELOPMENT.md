@@ -178,11 +178,18 @@ Export the name of the `Secret` to the environment:
 export REGISTRY_SECRET=anna-pull-secret
 ```
 
+You can optionally set a custom EPP image (otherwise, the default will be used):
+
+```console
+export EPP_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
+export EPP_TAG="<YOUR_TAG>"
+```
+
 Set the `VLLM_MODE` environment variable based on which version of vLLM you want to deploy:
 
 - `vllm-sim`: Lightweight simulator for simple environments
 - `vllm`: Full vLLM model server for real inference
-- `vllm-p2p`: Full vLLM with LMCache P2P support for distributed KV caching
+- `vllm-p2p`: Full vLLM with LMCache P2P support for enable KV-Cache aware routing
 
 ```console
 export VLLM_MODE=vllm-sim  # or vllm / vllm-p2p
@@ -197,18 +204,14 @@ export VLLM_SIM_TAG="<YOUR_TAG>"
 ```
 
 For vllm and vllm-p2p:
-
+- set Vllm image:
 ```console
 export VLLM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
 export VLLM_TAG="<YOUR_TAG>"
 ```
-
-The same thing will need to be done for the EPP:
-
-```console
-export EPP_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
-export EPP_TAG="<YOUR_TAG>"
-```
+- Set hugging face token variable:
+  export HF_TOKEN="<HF_TOKEN>"
+**Warning**: For vllm mode, the default image uses llama3-8b and vllm-mistral. Make sure you have permission to access these files in their respective repositories.
 
 Once all this is set up, you can deploy the environment:
 
@@ -224,12 +227,25 @@ kubectl -n ${NAMESPACE} port-forward service/inference-gateway 8080:80
 ```
 
 And making requests with `curl`:
+- vllm-sim
 
-```console
-curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
-  -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
-```
+    ```console
+    curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+      -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+    ```
 
+- vllm
+
+  ```console
+  curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+    -d '{"model":"meta-llama/Llama-3.1-8B-Instruct","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+  ```
+
+- vllm-p2p
+  ```console
+  curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+    -d '{"model":"mistralai/Mistral-7B-Instruct-v0.2","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+  ```
 #### Development Cycle
 
 > **WARNING**: This is a very manual process at the moment. We expect to make

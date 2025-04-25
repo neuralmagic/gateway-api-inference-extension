@@ -48,3 +48,11 @@ spec:
             service: inference-extension
           initialDelaySeconds: 5
           periodSeconds: 10
+        env:
+          - name: KVCACHE_INDEXER_REDIS_ADDR
+            value: ${REDIS_HOST}:${REDIS_PORT}
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: ${HF_SECRET_NAME}
+                key: ${HF_SECRET_KEY}

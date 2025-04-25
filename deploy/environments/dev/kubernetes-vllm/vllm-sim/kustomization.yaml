@@ -6,7 +6,6 @@ resources:
 
 images:
 - name: quay.io/vllm-d/vllm-sim
-  newName: ${VLLM_SIM_IMAGE}
   newTag: ${VLLM_SIM_TAG}
 
 patches:

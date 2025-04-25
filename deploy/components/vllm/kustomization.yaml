@@ -18,6 +18,8 @@ kind: Kustomization
 resources:
 - deployments.yaml
 - secret.yaml
+- configmap.yaml
+
 
 images:
 - name: vllm/vllm-openai
