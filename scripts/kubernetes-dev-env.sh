@@ -24,13 +24,18 @@ if [[ -z "${VLLM_MODE:-}" ]]; then
   exit 1
 fi
 
-# GIE Configuration node
+# GIE Configuration
 export POOL_NAME="${POOL_NAME:-vllm-llama3-8b-instruct}"
-export REDIS_SVC_NAME="${REDIS_SVC_NAME:-lookup-server-service}"
-export REDIS_HOST="${REDIS_HOST:-${REDIS_SVC_NAME}.${NAMESPACE}.svc.cluster.local}" #TODO- remove Redis to kustomize
-export REDIS_PORT="${REDIS_PORT:-8100}"
-export HF_TOKEN="${HF_TOKEN:-}"
+export MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
 
+## EPP ENV VARs — currently added to all EPPs, regardless of the VLLM mode or whether they are actually needed
+export REDIS_DEPLOYMENT_NAME="${REDIS_DEPLOYMENT_NAME:-lookup-server-service}"
+export REDIS_SVC_NAME="${REDIS_SVC_NAME:-${REDIS_DEPLOYMENT_NAME}}"
+export REDIS_HOST="${REDIS_HOST:-${REDIS_SVC_NAME}.${NAMESPACE}.svc.cluster.local}"
+export REDIS_PORT="${REDIS_PORT:-8100}"
+export HF_TOKEN=$(echo -n "${HF_TOKEN}" | base64 | tr -d '\n')
+export HF_SECRET_NAME="${HF_SECRET_NAME:-hf-token}"
+export HF_SECRET_KEY="${HF_SECRET_KEY:-token}"
 # vLLM Specific Configuration node
 case "${VLLM_MODE}" in
   vllm-sim)
@@ -38,40 +43,34 @@ case "${VLLM_MODE}" in
     export VLLM_SIM_TAG="${VLLM_SIM_TAG:-0.0.2}"
     export EPP_IMAGE="${EPP_IMAGE:-us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/epp}"
     export EPP_TAG="${EPP_TAG:-main}"
-    export VLLM_DEPLOYMENT_NAME="${VLLM_DEPLOYMENT_NAME:-vllm-sim}"
+    export HF_TOKEN=$(echo -n "dummy-token" | base64 | tr -d '\n')
     ;;
   vllm | vllm-p2p)
     # Shared across both full model modes - // TODO - make more env variables similar
     # TODO: Consider unifying more environment variables for consistency and reuse
-    export HF_SECRET_NAME="${HF_SECRET_NAME:-hf-token}"
-    export HF_TOKEN=$(echo -n "${HF_TOKEN:-}" | base64 | tr -d '\n')
+
     export VOLUME_MOUNT_PATH="${VOLUME_MOUNT_PATH:-/data}"
     export VLLM_REPLICA_COUNT="${VLLM_REPLICA_COUNT:-3}"
-
+    export MODEL_LABEL="${MODEL_LABEL:-llama3-8b}"
+    export VLLM_DEPLOYMENT_NAME="${VLLM_DEPLOYMENT_NAME:-vllm-${MODEL_LABEL}}"
 
     if [[ "$VLLM_MODE" == "vllm" ]]; then
       export VLLM_IMAGE="${VLLM_IMAGE:-quay.io/vllm-d/vllm-d-dev}"
       export VLLM_TAG="${VLLM_TAG:-0.0.2}"
-      export VLLM_DEPLOYMENT_NAME="${VLLM_DEPLOYMENT_NAME:-vllm-llama3-8b-instruct}"
       export EPP_IMAGE="${EPP_IMAGE:-quay.io/vllm-d/gateway-api-inference-extension-dev}"
       export EPP_TAG="${EPP_TAG:-0.0.4}"
-      export MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
-      export MODEL_LABEL="${MODEL_LABEL:-llama3-8b}"
-      export HF_SECRET_KEY="${HF_SECRET_KEY:-token}"
-      export HF_TOKEN="${HF_TOKEN:-}"
+
       export VLLM_REPLICA_COUNT="${VLLM_REPLICA_COUNT:-2}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}"
       export PVC_NAME="${PVC_NAME:-vllm-storage-claim}"
+      export LORA_ADAPTER_SYNCER_IMAGE="${LORA_ADAPTER_SYNCER_IMAGE:-us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/lora-syncer}"
+      export LORA_ADAPTER_SYNCER_TAG="${LORA_ADAPTER_SYNCER_TAG:-v20250425-ddc3d69}"
 
     elif [[ "$VLLM_MODE" == "vllm-p2p" ]]; then
       export VLLM_IMAGE="${VLLM_IMAGE:-lmcache/vllm-openai}"
       export VLLM_TAG="${VLLM_TAG:-2025-03-10}"
       export EPP_IMAGE="${EPP_IMAGE:- quay.io/vmaroon/gateway-api-inference-extension/epp}"
       export EPP_TAG="${EPP_TAG:-kv-aware}"
-      export MODEL_NAME="${MODEL_NAME:-mistralai/Mistral-7B-Instruct-v0.2}"
-      export MODEL_LABEL="${MODEL_LABEL:-mistral7b}"
-      export HF_SECRET_KEY="${HF_SECRET_KEY:-${HF_SECRET_NAME}_${MODEL_LABEL}}"
-      export VLLM_DEPLOYMENT_NAME="${VLLM_DEPLOYMENT_NAME:-vllm-${MODEL_LABEL}}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"
       export PVC_NAME="${PVC_NAME:-vllm-p2p-storage-claim}"
       export PVC_ACCESS_MODE="${PVC_ACCESS_MODE:-ReadWriteOnce}"
@@ -79,6 +78,7 @@ case "${VLLM_MODE}" in
       export PVC_STORAGE_CLASS="${PVC_STORAGE_CLASS:-standard}"
       export REDIS_IMAGE="${REDIS_IMAGE:-redis}"
       export REDIS_TAG="${REDIS_TAG:-7.2.3}"
+      export VLLM_CPU_RESOURCES="${VLLM_CPU_RESOURCES:-10}"
       export REDIS_REPLICA_COUNT="${REDIS_REPLICA_COUNT:-1}"
       export POD_IP="POD_IP"
       export REDIS_TARGET_PORT="${REDIS_TARGET_PORT:-6379}"
@@ -124,10 +124,10 @@ else
       kubectl -n "${NAMESPACE}" wait deployment/vllm-sim --for=condition=Available --timeout=60s
       ;;
     vllm)
-      kubectl -n "${NAMESPACE}" wait deployment/vllm-llama3-8b-instruct --for=condition=Available --timeout=180s
+      kubectl -n "${NAMESPACE}" wait deployment/${VLLM_DEPLOYMENT_NAME} --for=condition=Available --timeout=300s
       ;;
     vllm-p2p)
-      kubectl -n "${NAMESPACE}" wait deployment/vllm-mistral7b --for=condition=Available --timeout=180s
+      kubectl -n "${NAMESPACE}" wait deployment/${VLLM_DEPLOYMENT_NAME} --for=condition=Available --timeout=180s
       kubectl -n "${NAMESPACE}" wait deployment/${REDIS_SVC_NAME} --for=condition=Available --timeout=60s
       ;;
   esac

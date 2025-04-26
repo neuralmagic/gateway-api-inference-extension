@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vllm-llama3-8b-instruct-adapters
+  name: lora-adapters
 data:
   configmap.yaml: |
       vLLMLoRAConfig:
-        name: vllm-llama3-8b-instruct-adapters
+        name: lora-adapters
         port: 8000
-        defaultBaseModel: meta-llama/Llama-3.1-8B-Instruct
+        defaultBaseModel: ${MODEL_NAME}
         ensureExist:
           models:
           - id: food-review-1

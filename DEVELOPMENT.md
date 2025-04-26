@@ -152,6 +152,13 @@ Create the namespace:
 ```console
 kubectl create namespace ${NAMESPACE}
 ```
+Set the default namespace for kubectl commands
+
+```console
+kubectl config set-context --current --namespace="${NAMESPACE}"
+```
+
+> NOTE: If you are using OpenShift (oc CLI), use the following instead: `oc project "${NAMESPACE}"`
 
 You'll need to provide a `Secret` with the login credentials for your private
 repository (e.g. quay.io). It should look something like this:
@@ -178,13 +185,6 @@ Export the name of the `Secret` to the environment:
 export REGISTRY_SECRET=anna-pull-secret
 ```
 
-You can optionally set a custom EPP image (otherwise, the default will be used):
-
-```console
-export EPP_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
-export EPP_TAG="<YOUR_TAG>"
-```
-
 Set the `VLLM_MODE` environment variable based on which version of vLLM you want to deploy:
 
 - `vllm-sim`: Lightweight simulator for simple environments
@@ -194,24 +194,10 @@ Set the `VLLM_MODE` environment variable based on which version of vLLM you want
 ```console
 export VLLM_MODE=vllm-sim  # or vllm / vllm-p2p
 ```
-Each mode has default image values, but you can override them:
 
-For vllm-sim:
-
-```console
-export VLLM_SIM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
-export VLLM_SIM_TAG="<YOUR_TAG>"
-```
-
-For vllm and vllm-p2p:
-- set Vllm image:
-```console
-export VLLM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
-export VLLM_TAG="<YOUR_TAG>"
-```
 - Set hugging face token variable:
   export HF_TOKEN="<HF_TOKEN>"
-**Warning**: For vllm mode, the default image uses llama3-8b and vllm-mistral. Make sure you have permission to access these files in their respective repositories.
+**Warning**: For vllm mode, the default image uses llama3-8b. Make sure you have permission to access these files in their respective repositories.
 
 Once all this is set up, you can deploy the environment:
 
@@ -222,30 +208,73 @@ make environment.dev.kubernetes
 This will deploy the entire stack to whatever namespace you chose. You can test
 by exposing the inference `Gateway` via port-forward:
 
-```console
+```bash
 kubectl -n ${NAMESPACE} port-forward service/inference-gateway 8080:80
 ```
 
 And making requests with `curl`:
 - vllm-sim
 
-    ```console
+    ```bash
     curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
       -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
     ```
 
-- vllm
+- vllm or vllm-p2p
 
-  ```console
+  ```bash
   curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
     -d '{"model":"meta-llama/Llama-3.1-8B-Instruct","prompt":"hi","max_tokens":10,"temperature":0}' | jq
   ```
+#### Environment Configurateion
 
-- vllm-p2p
-  ```console
-  curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
-    -d '{"model":"mistralai/Mistral-7B-Instruct-v0.2","prompt":"hi","max_tokens":10,"temperature":0}' | jq
-  ```
+##### **1. Setting the EPP image and tag:**
+
+You can optionally set a custom EPP image (otherwise, the default will be used):
+
+```bash
+export EPP_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
+export EPP_TAG="<YOUR_TAG>"
+```
+##### **2. Setting the vLLM image and tag:**
+
+Each vLLM mode has default image values, but you can override them:
+
+For `vllm-sim` mode:**
+
+```bash
+export VLLM_SIM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
+export VLLM_SIM_TAG="<YOUR_TAG>"
+```
+
+For `vllm` and `vllm-p2p` modes:**
+
+```bash
+export VLLM_IMAGE="<YOUR_REGISTRY>/<YOUR_IMAGE>"
+export VLLM_TAG="<YOUR_TAG>"
+```
+
+##### **3. Setting the model name and label:**
+
+You can replace the model name that will be used in the system.
+
+```bash
+export MODEL_NAME="${MODEL_NAME:-mistralai/Mistral-7B-Instruct-v0.2}"
+export MODEL_LABEL="${MODEL_LABEL:-mistral7b}"
+```
+
+It is also recommended to update the pool name accordingly:
+
+```bash
+export POOL_NAME="${POOL_NAME:-vllm-Mistral-7B-Instruct}"
+```
+
+##### **4. Additional environment settings:**
+
+More Setting of environment variables can be found in the `scripts/kubernetes-dev-env.sh`.
+
+
+
 #### Development Cycle
 
 > **WARNING**: This is a very manual process at the moment. We expect to make

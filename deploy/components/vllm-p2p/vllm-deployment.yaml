@@ -22,11 +22,6 @@ spec:
         app.kubernetes.io/model: ${MODEL_LABEL}
         app: ${POOL_NAME}
     spec:
-      # securityContext:
-      #   runAsUser: ${PROXY_UID}
-        # runAsNonRoot: true
-        # seccompProfile:
-        #   type: RuntimeDefault
       containers:
         - name: vllm
           image: ${VLLM_IMAGE}:${VLLM_TAG}
@@ -101,7 +96,7 @@ spec:
             limits:
               nvidia.com/gpu: "1"
             requests:
-              cpu: "10"
+              cpu: "${VLLM_CPU_RESOURCES}"
               memory: 40Gi
               nvidia.com/gpu: "1"
           terminationMessagePath: /dev/termination-log

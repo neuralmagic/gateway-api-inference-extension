@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${REDIS_SVC_NAME}
+  name: ${REDIS_DEPLOYMENT_NAME}
   labels:
     app.kubernetes.io/name: redis
     app.kubernetes.io/component: redis-lookup-server
@@ -48,8 +48,3 @@ spec:
       maxSurge: 25%
   revisionHistoryLimit: 10
   progressDeadlineSeconds: 600
-          # securityContext:
-          #   allowPrivilegeEscalation: false
-          #   capabilities:
-          #     drop:
-          #       - ALL

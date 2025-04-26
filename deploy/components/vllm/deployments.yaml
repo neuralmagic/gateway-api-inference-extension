@@ -24,7 +24,7 @@ spec:
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
           args:
             - "--model"
-            - "meta-llama/Llama-3.1-8B-Instruct"
+            - "${MODEL_NAME}"
             - "--tensor-parallel-size"
             - "1"
             - "--port"
@@ -48,8 +48,8 @@ spec:
             - name: HUGGING_FACE_HUB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: hf-token
-                  key: token
+                  name: ${HF_SECRET_NAME}
+                  key: ${HF_SECRET_KEY}
             - name: VLLM_ALLOW_RUNTIME_LORA_UPDATING
               value: "true"
             - name: XDG_CACHE_HOME
@@ -104,11 +104,6 @@ spec:
               name: shm
             - mountPath: /adapters
               name: adapters
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
       initContainers:
         - name: lora-adapter-syncer
           tty: true
@@ -122,11 +117,6 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /config
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
       restartPolicy: Always
       enableServiceLinks: false
       terminationGracePeriodSeconds: 130
@@ -140,4 +130,4 @@ spec:
           emptyDir: {}
         - name: config-volume
           configMap:
-            name: vllm-llama3-8b-instruct-adapters
+            name: lora-adapters

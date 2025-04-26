@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: vllm-sim
   labels:
-    app: vllm-llama3-8b-instruct
+    app: ${POOL_NAME}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vllm-llama3-8b-instruct
+      app: ${POOL_NAME}
   template:
     metadata:
       labels:
-        app: vllm-llama3-8b-instruct
+        app: ${POOL_NAME}
         ai-aware-router-pod: "true"
     spec:
       containers:

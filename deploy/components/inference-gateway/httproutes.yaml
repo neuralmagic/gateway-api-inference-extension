@@ -13,7 +13,7 @@ spec:
     backendRefs:
     - group: inference.networking.x-k8s.io
       kind: InferencePool
-      name: vllm-llama3-8b-instruct
+      name: ${POOL_NAME}
       port: 8000
     timeouts:
       request: 30s

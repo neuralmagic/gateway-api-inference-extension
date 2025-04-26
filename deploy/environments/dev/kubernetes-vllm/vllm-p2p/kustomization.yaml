@@ -9,3 +9,5 @@ images:
   newName: ${VLLM_IMAGE}
   newTag: ${VLLM_TAG}
 
+patches:
+  - path: patch-deployments.yaml

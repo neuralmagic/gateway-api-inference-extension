@@ -9,3 +9,9 @@ images:
   newName: ${VLLM_IMAGE}
   newTag: ${VLLM_TAG}
 
+- name: us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/lora-syncer
+  newName: ${LORA_ADAPTER_SYNCER_IMAGE}
+  newTag: ${LORA_ADAPTER_SYNCER_TAG}
+
+patches:
+  - path: patch-deployments.yaml
