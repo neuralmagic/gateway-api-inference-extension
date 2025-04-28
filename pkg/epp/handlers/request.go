@@ -66,6 +66,8 @@ func (s *StreamingServer) HandleRequestBody(
 		Model:               model,
 		ResolvedTargetModel: modelName,
 		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
+		RequestHeaders:      reqCtx.RequestHeaders,
+		MutatedHeaders:      make(map[string]string),
 	}
 	logger.V(logutil.DEBUG).Info("LLM request assembled", "request", llmReq)
 
@@ -103,6 +105,7 @@ func (s *StreamingServer) HandleRequestBody(
 	reqCtx.RequestSize = len(requestBodyBytes)
 	reqCtx.TargetPod = targetPod.NamespacedName.String()
 	reqCtx.TargetEndpoint = endpoint
+	reqCtx.MutatedHeaders = llmReq.MutatedHeaders
 
 	s.populateRequestHeaderResponse(reqCtx, endpoint, len(requestBodyBytes))
 
@@ -130,6 +133,11 @@ func (s *StreamingServer) HandleRequestBody(
 
 func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *RequestContext, req *extProcPb.ProcessingRequest_RequestHeaders) error {
 	reqCtx.RequestReceivedTimestamp = time.Now()
+
+	// copy all header to a map for usage in plugins
+	for _, header := range req.RequestHeaders.Headers.GetHeaders() {
+		reqCtx.RequestHeaders[header.Key] = string(header.RawValue)
+	}
 
 	// an EoS in the request headers means this request has no body or trailers.
 	if req.RequestHeaders.EndOfStream {

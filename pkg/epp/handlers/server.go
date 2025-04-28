@@ -82,6 +82,8 @@ type RequestContext struct {
 	ResponseComplete          bool
 	ResponseStatusCode        string
 	RequestRunning            bool
+	RequestHeaders            map[string]string
+	MutatedHeaders            map[string]string
 
 	RequestState         StreamRequestState
 	modelServerStreaming bool
@@ -117,7 +119,8 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 	// Create request context to share states during life time of an HTTP request.
 	// See https://github.com/envoyproxy/envoy/issues/17540.
 	reqCtx := &RequestContext{
-		RequestState: RequestReceived,
+		RequestState:   RequestReceived,
+		RequestHeaders: make(map[string]string),
 	}
 
 	var body []byte
@@ -197,21 +200,32 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 					loggerTrace.Info("model server is streaming response")
 				}
 			}
+
+			var mutatedHeaders []*configPb.HeaderValueOption = make([]*configPb.HeaderValueOption, 0)
+
+			mutatedHeaders = append(mutatedHeaders, &configPb.HeaderValueOption{
+				Header: &configPb.HeaderValue{
+					// This is for debugging purpose only.
+					Key:      "x-went-into-resp-headers",
+					RawValue: []byte("true"),
+				},
+			})
+			for key, value := range reqCtx.MutatedHeaders {
+				mutatedHeaders = append(mutatedHeaders, &configPb.HeaderValueOption{
+					Header: &configPb.HeaderValue{
+						Key:      key,
+						RawValue: []byte(value),
+					},
+				})
+			}
+
 			reqCtx.RequestState = ResponseRecieved
 			reqCtx.respHeaderResp = &extProcPb.ProcessingResponse{
 				Response: &extProcPb.ProcessingResponse_ResponseHeaders{
 					ResponseHeaders: &extProcPb.HeadersResponse{
 						Response: &extProcPb.CommonResponse{
 							HeaderMutation: &extProcPb.HeaderMutation{
-								SetHeaders: []*configPb.HeaderValueOption{
-									{
-										Header: &configPb.HeaderValue{
-											// This is for debugging purpose only.
-											Key:      "x-went-into-resp-headers",
-											RawValue: []byte("true"),
-										},
-									},
-								},
+								SetHeaders: mutatedHeaders,
 							},
 						},
 					},
