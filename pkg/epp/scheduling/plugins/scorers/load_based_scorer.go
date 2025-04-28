@@ -16,7 +16,6 @@ limitations under the License.
 package scorers
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/config"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
@@ -41,8 +40,6 @@ func (s LoadBasedScorer) Name() string {
 // Score 0 will get pod with number of requests in the queue qual to the threshold used in load-based filter (QueueingThresholdLoRA)
 // In future pods with additional capacity will get score higher than 0.5
 func (s LoadBasedScorer) Score(ctx *types.SchedulingContext, pods []types.Pod) map[types.Pod]float64 {
-	logger := log.FromContext(ctx)
-
 	var scoredPods map[types.Pod]float64 = make(map[types.Pod]float64)
 
 	for _, pod := range pods {
