@@ -19,10 +19,7 @@ if [[ -z "${NAMESPACE:-}" ]]; then
   echo "ERROR: NAMESPACE environment variable is not set."
   exit 1
 fi
-if [[ -z "${VLLM_MODE:-}" ]]; then
-  echo "ERROR: VLLM_MODE is not set. Please export one of: vllm-sim, vllm, vllm-p2p"
-  exit 1
-fi
+
 
 # GIE Configuration
 export POOL_NAME="${POOL_NAME:-vllm-llama3-8b-instruct}"
@@ -37,6 +34,8 @@ export HF_TOKEN=$(echo -n "${HF_TOKEN}" | base64 | tr -d '\n')
 export HF_SECRET_NAME="${HF_SECRET_NAME:-hf-token}"
 export HF_SECRET_KEY="${HF_SECRET_KEY:-token}"
 # vLLM Specific Configuration node
+export VLLM_MODE="${VLLM_MODE:-vllm-sim}"
+
 case "${VLLM_MODE}" in
   vllm-sim)
     export VLLM_SIM_IMAGE="${VLLM_SIM_IMAGE:-quay.io/vllm-d/vllm-sim}"
@@ -59,8 +58,6 @@ case "${VLLM_MODE}" in
       export VLLM_TAG="${VLLM_TAG:-0.0.2}"
       export EPP_IMAGE="${EPP_IMAGE:-quay.io/vllm-d/gateway-api-inference-extension-dev}"
       export EPP_TAG="${EPP_TAG:-0.0.4}"
-
-      export VLLM_REPLICA_COUNT="${VLLM_REPLICA_COUNT:-2}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}"
       export PVC_NAME="${PVC_NAME:-vllm-storage-claim}"
       export LORA_ADAPTER_SYNCER_IMAGE="${LORA_ADAPTER_SYNCER_IMAGE:-us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/lora-syncer}"
@@ -79,7 +76,6 @@ case "${VLLM_MODE}" in
       export REDIS_IMAGE="${REDIS_IMAGE:-redis}"
       export REDIS_TAG="${REDIS_TAG:-7.2.3}"
       export VLLM_CPU_RESOURCES="${VLLM_CPU_RESOURCES:-10}"
-      export REDIS_REPLICA_COUNT="${REDIS_REPLICA_COUNT:-1}"
       export POD_IP="POD_IP"
       export REDIS_TARGET_PORT="${REDIS_TARGET_PORT:-6379}"
       export REDIS_SERVICE_TYPE="${REDIS_SERVICE_TYPE:-ClusterIP}"

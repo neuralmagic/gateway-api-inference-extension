@@ -785,7 +785,7 @@ environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 .PHONY: clean.environment.dev.kubernetes
 clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 	@CLEAN=true ./scripts/kubernetes-dev-env.sh 2>&1
-	@echo "INFO: Finish cleanup development environment for $(VLLM_MODE) mode in namespace $(NAMESPACE)"
+	@echo "INFO: Finished cleanup of development environment for $(VLLM_MODE) mode in namespace $(NAMESPACE)"
 
 # -----------------------------------------------------------------------------
 # TODO: these are old aliases that we still need for the moment, but will be

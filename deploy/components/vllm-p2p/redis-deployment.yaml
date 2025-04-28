@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: redis
     app.kubernetes.io/component: redis-lookup-server
 spec:
-  replicas: ${REDIS_REPLICA_COUNT}
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: redis

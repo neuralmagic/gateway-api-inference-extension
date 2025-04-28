@@ -11,7 +11,7 @@
 #   - The container image and tag (VLLM_IMAGE, VLLM_TAG)
 #   - The model to load (MODEL_NAME)
 #
-# This setup is suitable for testing and production with Kubernetes (including
+# This setup is suitable for testing on Kubernetes (including
 # GPU-enabled nodes or clusters with scheduling for `nvidia.com/gpu`).
 # -----------------------------------------------------------------------------
 apiVersion: kustomize.config.k8s.io/v1beta1
