@@ -32,6 +32,10 @@ import (
 
 const (
 	fetchMetricsTimeout = 5 * time.Second
+	roleLabel           = "llmd.org/role"
+	rolePrefill         = "prefill"
+	roleDecode          = "decode"
+	roleBoth            = "both"
 )
 
 type podMetrics struct {
@@ -67,6 +71,27 @@ func (pm *podMetrics) UpdatePod(in *corev1.Pod) {
 	pm.pod.Store(toInternalPod(in))
 }
 
+func podLabelToRole(in *corev1.Pod) PodRole {
+	labels := in.ObjectMeta.Labels
+
+	for key, value := range labels {
+		if key == roleLabel {
+			switch value {
+			case rolePrefill:
+				return Prefill
+			case roleDecode:
+				return Decode
+			case roleBoth:
+				return Both
+			default:
+				return Error
+			}
+		}
+	}
+
+	return Error
+}
+
 func toInternalPod(in *corev1.Pod) *Pod {
 	return &Pod{
 		NamespacedName: types.NamespacedName{
@@ -74,6 +99,7 @@ func toInternalPod(in *corev1.Pod) *Pod {
 			Namespace: in.Namespace,
 		},
 		Address: in.Status.PodIP,
+		Role:    podLabelToRole(in),
 	}
 }
 
