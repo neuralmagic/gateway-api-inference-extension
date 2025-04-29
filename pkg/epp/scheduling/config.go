@@ -18,7 +18,6 @@ package scheduling
 
 import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
-	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorers"
 )
 
 type SchedulerConfig struct {
@@ -35,18 +34,10 @@ var defPlugin = &defaultPlugin{}
 // it's possible to call NewSchedulerWithConfig to pass a different argument.
 
 // For build time plugins changes, it's recommended to change the defaultConfig variable in this file.
-var defaultConfig = createDefaultConfig()
-
-func createDefaultConfig() *SchedulerConfig {
-	defConfig := &SchedulerConfig{
-		preSchedulePlugins:  []plugins.PreSchedule{},
-		filters:             []plugins.Filter{defPlugin},
-		scorers:             map[plugins.Scorer]int{},
-		picker:              defPlugin,
-		postSchedulePlugins: []plugins.PostSchedule{},
-	}
-
-	defConfig.scorers[scorers.NewLoadBasedScorer()] = 1.0
-
-	return defConfig
+var defaultConfig = &SchedulerConfig{
+	preSchedulePlugins:  []plugins.PreSchedule{},
+	filters:             []plugins.Filter{defPlugin},
+	scorers:             map[plugins.Scorer]int{},
+	picker:              defPlugin,
+	postSchedulePlugins: []plugins.PostSchedule{},
 }

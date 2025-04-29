@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${VLLM_DEPLOYMENT_NAME}
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/model: ${MODEL_LABEL}
+    app.kubernetes.io/component: vllm
+spec:
+  replicas: ${VLLM_REPLICA_COUNT}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+      app.kubernetes.io/component: vllm
+      app.kubernetes.io/model: ${MODEL_LABEL}
+      app: ${POOL_NAME}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/component: vllm
+        app.kubernetes.io/model: ${MODEL_LABEL}
+        app: ${POOL_NAME}
+    spec:
+      containers:
+        - name: vllm
+          image: ${VLLM_IMAGE}:${VLLM_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - "-c"
+          args:
+            - |
+              export LMCACHE_DISTRIBUTED_URL=$${${POD_IP}}:80 && \
+              vllm serve ${MODEL_NAME} \
+              --host 0.0.0.0 \
+              --port 8000 \
+              --enable-chunked-prefill false \
+              --max-model-len ${MAX_MODEL_LEN} \
+              --kv-transfer-config '{"kv_connector":"LMCacheConnector","kv_role":"kv_both"}'
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: lmcache-dist # Assuming port 80 is used for LMCACHE_DISTRIBUTED_URL
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          startupProbe:
+            failureThreshold: 60
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          env:
+            - name: HF_HOME
+              value: /data
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ${HF_SECRET_NAME}
+                  key: ${HF_SECRET_KEY}
+            - name: LMCACHE_LOOKUP_URL
+              value: ${REDIS_HOST}:${REDIS_PORT}
+            - name: LMCACHE_ENABLE_DEBUG
+              value: "True"
+            - name: LMCACHE_ENABLE_P2P
+              value: "True"
+            - name: LMCACHE_LOCAL_CPU
+              value: "True"
+            - name: LMCACHE_MAX_LOCAL_CPU_SIZE
+              value: "20"
+            - name: LMCACHE_USE_EXPERIMENTAL
+              value: "True"
+            - name: VLLM_RPC_TIMEOUT
+              value: "1000000"
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "${VLLM_CPU_RESOURCES}"
+              memory: 40Gi
+              nvidia.com/gpu: "1"
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          securityContext:
+            runAsNonRoot: false
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: "100%"
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 1200
+

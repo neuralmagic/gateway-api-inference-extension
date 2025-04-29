@@ -4,14 +4,11 @@ kind: Kustomization
 namespace: ${NAMESPACE}
 
 resources:
-- ../../../components/vllm-sim/
+- secret.yaml
 - ../../../components/inference-gateway/
 - gateway-parameters.yaml
 
 images:
-- name: quay.io/vllm-d/vllm-sim
-  newName: ${VLLM_SIM_IMAGE}
-  newTag: ${VLLM_SIM_TAG}
 - name: quay.io/vllm-d/gateway-api-inference-extension/epp
   newName: ${EPP_IMAGE}
   newTag: ${EPP_TAG}

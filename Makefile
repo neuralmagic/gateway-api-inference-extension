@@ -784,11 +784,8 @@ environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 # ------------------------------------------------------------------------------
 .PHONY: clean.environment.dev.kubernetes
 clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
-ifndef NAMESPACE
-	$(error "Error: NAMESPACE is required but not set")
-endif
-	@echo "INFO: cleaning up dev environment in $(NAMESPACE)"
-	kustomize build deploy/environments/dev/kubernetes-kgateway | envsubst | kubectl -n "${NAMESPACE}" delete -f -
+	@CLEAN=true ./scripts/kubernetes-dev-env.sh 2>&1
+	@echo "INFO: Finished cleanup of development environment for $(VLLM_MODE) mode in namespace $(NAMESPACE)"
 
 # -----------------------------------------------------------------------------
 # TODO: these are old aliases that we still need for the moment, but will be

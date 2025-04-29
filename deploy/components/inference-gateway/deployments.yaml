@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - -poolName
-        - "vllm-llama3-8b-instruct"
+        - "${POOL_NAME}"
         - -v
         - "4"
         - --zap-encoder

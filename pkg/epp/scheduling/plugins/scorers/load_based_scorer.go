@@ -17,15 +17,10 @@ package scorers
 
 import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/config"
-	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
 type LoadBasedScorer struct{}
-
-func NewLoadBasedScorer() plugins.Scorer {
-	return LoadBasedScorer{}
-}
 
 func (s LoadBasedScorer) Name() string {
 	return "load based scorer"

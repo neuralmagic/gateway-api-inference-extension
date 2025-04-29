@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lora-adapters
+data:
+  configmap.yaml: |
+      vLLMLoRAConfig:
+        name: lora-adapters
+        port: 8000
+        defaultBaseModel: ${MODEL_NAME}
+        ensureExist:
+          models:
+          - id: food-review-1
+            source: Kawon/llama3.1-food-finetune_v14_r8

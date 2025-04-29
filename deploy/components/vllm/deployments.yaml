@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${VLLM_DEPLOYMENT_NAME}
+spec:
+  replicas: ${VLLM_REPLICA_COUNT}
+  selector:
+    matchLabels:
+      app: ${POOL_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${POOL_NAME}
+    spec:
+      securityContext:
+        runAsUser: ${PROXY_UID}
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: vllm
+          image: "vllm/vllm-openai:latest"
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+          args:
+            - "--model"
+            - "${MODEL_NAME}"
+            - "--tensor-parallel-size"
+            - "1"
+            - "--port"
+            - "8000"
+            - "--max-num-seq"
+            - "1024"
+            - "--compilation-config"
+            - "3"
+            - "--enable-lora"
+            - "--max-loras"
+            - "2"
+            - "--max-lora-rank"
+            - "8"
+            - "--max-cpu-loras"
+            - "12"
+          env:
+            - name: VLLM_USE_V1
+              value: "1"
+            - name: PORT
+              value: "8000"
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ${HF_SECRET_NAME}
+                  key: ${HF_SECRET_KEY}
+            - name: VLLM_ALLOW_RUNTIME_LORA_UPDATING
+              value: "true"
+            - name: XDG_CACHE_HOME
+              value: /cache
+            - name: HF_HOME
+              value: /cache/huggingface
+            - name: FLASHINFER_CACHE_DIR
+              value: /cache/flashinfer
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            periodSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            periodSeconds: 1
+            successThreshold: 1
+            failureThreshold: 1
+            timeoutSeconds: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            failureThreshold: 600
+            initialDelaySeconds: 2
+            periodSeconds: 1
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+            requests:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - mountPath: /cache
+              name: hf-cache
+            - mountPath: /dev/shm
+              name: shm
+            - mountPath: /adapters
+              name: adapters
+      initContainers:
+        - name: lora-adapter-syncer
+          tty: true
+          stdin: true
+          image: us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/lora-syncer:main
+          restartPolicy: Always
+          imagePullPolicy: Always
+          env:
+            - name: DYNAMIC_LORA_ROLLOUT_CONFIG
+              value: "/config/configmap.yaml"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+      restartPolicy: Always
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 130
+      volumes:
+        - name: hf-cache
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+        - name: adapters
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: lora-adapters
