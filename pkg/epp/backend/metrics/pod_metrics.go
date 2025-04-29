@@ -89,7 +89,8 @@ func podLabelToRole(in *corev1.Pod) PodRole {
 		}
 	}
 
-	return Error
+	// role label is missing
+	return Both
 }
 
 func toInternalPod(in *corev1.Pod) *Pod {
