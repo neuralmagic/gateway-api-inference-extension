@@ -97,6 +97,12 @@ kubectl create namespace ${NAMESPACE} 2>/dev/null || true
 # Hack to deal with KGateways broken OpenShift support
 export PROXY_UID=$(kubectl get namespace ${NAMESPACE} -o json | jq -e -r '.metadata.annotations["openshift.io/sa.scc.uid-range"]' | perl -F'/' -lane 'print $F[0]+1');
 
+# Detect if the cluster is OpenShift by checking for the 'route.openshift.io' API group
+IS_OPENSHIFT=false
+if kubectl api-resources 2>/dev/null | grep -q 'route.openshift.io'; then
+  IS_OPENSHIFT=true
+fi
+
 set -o pipefail
 
 if [[ "$CLEAN" == "true" ]]; then
@@ -105,7 +111,14 @@ if [[ "$CLEAN" == "true" ]]; then
   kustomize build deploy/environments/dev/kubernetes-vllm/${VLLM_MODE} | envsubst | kubectl -n "${NAMESPACE}" delete --ignore-not-found=true -f -
 else
   echo "INFO: Deploying vLLM Environment in namespace ${NAMESPACE}"
-  oc adm policy add-scc-to-user anyuid -z default -n ${NAMESPACE}
+  if [[ "${IS_OPENSHIFT}" == "true" ]]; then
+    if command -v oc &>/dev/null; then
+      # Grant the 'default' service account permission to run containers as any user (disables UID restrictions)
+      oc adm policy add-scc-to-user anyuid -z default -n "${NAMESPACE}"
+      echo "INFO: OpenShift cluster detected – granted 'anyuid' SCC to the 'default' service account in namespace '${NAMESPACE}'."
+    fi
+  fi
+
   kustomize build deploy/environments/dev/kubernetes-vllm/${VLLM_MODE} | envsubst | kubectl -n "${NAMESPACE}" apply -f -
 
   echo "INFO: Deploying Gateway Environment in namespace ${NAMESPACE}"
