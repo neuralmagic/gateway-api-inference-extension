@@ -22,34 +22,47 @@ import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
+const (
+	prefillPodHeader = "x-prefill-dns-name"
+)
+
 var PDFilter = &baseFilter{
 	name:   "p/d filter",
 	filter: prefillDecodeFilterFunc,
 }
 
 // prefillDecodeFilterFunc implements a pod selection strategy that filters out pods,
-// which role is not 'prefill'
+// which role is 'prefill', in addition a header with selected prefill pod is added
 //
 // Initial implementation:
-// 1 - to filter out all pods that are not 'prefill'
-// 2 - from the list of prefill pods select only one, which was sleected randomly
+// 1 - select one random pod marked as 'prefill' and add it name to header
+// 2 - return a random pod that marked as "decode" or "both"
 //
 // Returns:
 //   - Filtered slice of pod metrics, could contain one or zerro elements
 func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
 	pPods := make([]types.Pod, 0)
+	dPods := make([]types.Pod, 0)
 
 	for _, pod := range pods {
 		if pod.GetPod().Role == metrics.Prefill {
 			pPods = append(pPods, pod)
+		} else if pod.GetPod().Role == metrics.Decode || pod.GetPod().Role == metrics.Both {
+			dPods = append(dPods, pod)
 		}
 	}
 
-	if len(pPods) > 1 {
-		// leave only one pod
+	if len(pPods) > 0 {
+		// select a random prefill pod
 		randomIndex := rand.IntN(len(pPods))
-		return []types.Pod{pPods[randomIndex]}
+		ctx.MutatedHeaders[prefillPodHeader] = pPods[randomIndex].GetPod().NamespacedName.String()
 	}
 
-	return []types.Pod{}
+	if len(dPods) > 1 {
+		// leave only one pod
+		randomIndex := rand.IntN(len(dPods))
+		return []types.Pod{dPods[randomIndex]}
+	}
+
+	return dPods
 }

@@ -22,4 +22,7 @@ import (
 
 func init() {
 	defaultConfig.scorers[&scorers.LoadBasedScorer{}] = 1.0
+
+	// Added as a reference
+	// defaultConfig.filters = []plugins.Filter{filter.PDFilter}
 }
