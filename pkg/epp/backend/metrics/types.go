@@ -71,7 +71,7 @@ const (
 	Prefill PodRole = iota
 	Decode
 	Both
-	Error
+	Unknown
 )
 
 type Pod struct {

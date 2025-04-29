@@ -72,20 +72,18 @@ func (pm *podMetrics) UpdatePod(in *corev1.Pod) {
 }
 
 func podLabelToRole(in *corev1.Pod) PodRole {
-	labels := in.ObjectMeta.Labels
+	roleLabel, ok := in.ObjectMeta.Labels[roleLabel]
 
-	for key, value := range labels {
-		if key == roleLabel {
-			switch value {
-			case rolePrefill:
-				return Prefill
-			case roleDecode:
-				return Decode
-			case roleBoth:
-				return Both
-			default:
-				return Error
-			}
+	if ok {
+		switch roleLabel {
+		case rolePrefill:
+			return Prefill
+		case roleDecode:
+			return Decode
+		case roleBoth:
+			return Both
+		default:
+			return Unknown
 		}
 	}
 
