@@ -26,8 +26,6 @@ resources:
 - deployments.yaml
 - gateways.yaml
 - httproutes.yaml
-- secret.yaml
-
 
 images:
 - name: quay.io/vllm-d/gateway-api-inference-extension/epp

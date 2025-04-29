@@ -22,3 +22,11 @@ spec:
         - "9002"
         - -grpcHealthPort
         - "9003"
+        env:
+          - name: KVCACHE_INDEXER_REDIS_ADDR
+            value: ${REDIS_HOST}:${REDIS_PORT}
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: hf-token
+                key: ${HF_SECRET_KEY}

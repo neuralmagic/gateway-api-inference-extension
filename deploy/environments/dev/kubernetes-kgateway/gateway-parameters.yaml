@@ -11,7 +11,7 @@ spec:
         runAsNonRoot: true
         runAsUser: "${PROXY_UID}"
     service:
-      type: LoadBalancer
+      type: ${GATEWAY_SERVICE_TYPE}
       extraLabels:
         gateway: custom
     podTemplate:

@@ -24,6 +24,7 @@ fi
 # GIE Configuration
 export POOL_NAME="${POOL_NAME:-vllm-llama3-8b-instruct}"
 export MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
+export GATEWAY_SERVICE_TYPE="${GATEWAY_SERVICE_TYPE:-NodePort}"
 
 ## EPP ENV VARs — currently added to all EPPs, regardless of the VLLM mode or whether they are actually needed
 export REDIS_DEPLOYMENT_NAME="${REDIS_DEPLOYMENT_NAME:-lookup-server-service}"
@@ -104,7 +105,7 @@ if [[ "$CLEAN" == "true" ]]; then
   kustomize build deploy/environments/dev/kubernetes-vllm/${VLLM_MODE} | envsubst | kubectl -n "${NAMESPACE}" delete --ignore-not-found=true -f -
 else
   echo "INFO: Deploying vLLM Environment in namespace ${NAMESPACE}"
-  oc adm policy add-scc-to-user anyuid -z default -n ${NAMESPACE}  # TODO - Change to security context
+  oc adm policy add-scc-to-user anyuid -z default -n ${NAMESPACE}
   kustomize build deploy/environments/dev/kubernetes-vllm/${VLLM_MODE} | envsubst | kubectl -n "${NAMESPACE}" apply -f -
 
   echo "INFO: Deploying Gateway Environment in namespace ${NAMESPACE}"
@@ -120,7 +121,7 @@ else
       kubectl -n "${NAMESPACE}" wait deployment/vllm-sim --for=condition=Available --timeout=60s
       ;;
     vllm)
-      kubectl -n "${NAMESPACE}" wait deployment/${VLLM_DEPLOYMENT_NAME} --for=condition=Available --timeout=300s
+      kubectl -n "${NAMESPACE}" wait deployment/${VLLM_DEPLOYMENT_NAME} --for=condition=Available --timeout=500s
       ;;
     vllm-p2p)
       kubectl -n "${NAMESPACE}" wait deployment/${VLLM_DEPLOYMENT_NAME} --for=condition=Available --timeout=180s

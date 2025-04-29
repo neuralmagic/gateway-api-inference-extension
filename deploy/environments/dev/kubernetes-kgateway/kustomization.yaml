@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: ${NAMESPACE}
 
 resources:
+- secret.yaml
 - ../../../components/inference-gateway/
 - gateway-parameters.yaml
 

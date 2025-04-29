@@ -191,7 +191,7 @@ export REGISTRY_SECRET=anna-pull-secret
 
 Set the `VLLM_MODE` environment variable based on which version of vLLM you want to deploy:
 
-* `vllm-sim`: Lightweight simulator for simple environments (defult).
+* `vllm-sim`: Lightweight simulator for simple environments (default).
 * `vllm`: Full vLLM model server, using GPU/CPU for inferencing
 * `vllm-p2p`: Full vLLM with LMCache P2P support for enable KV-Cache aware routing
 
@@ -224,19 +224,19 @@ kubectl port-forward service/inference-gateway 8080:80
 
 And making requests with `curl`:
 
-- vllm-sim
+**vllm-sim:**
 
-    ```bash
-    curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
-      -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
-    ```
+```bash
+curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+  -d '{"model":"food-review","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+```
 
-- vllm or vllm-p2p
+**vllm or vllm-p2p:**
 
-  ```bash
-  curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
-    -d '{"model":"meta-llama/Llama-3.1-8B-Instruct","prompt":"hi","max_tokens":10,"temperature":0}' | jq
-  ```
+```bash
+curl -s -w '\n' http://localhost:8080/v1/completions -H 'Content-Type: application/json' \
+  -d '{"model":"meta-llama/Llama-3.1-8B-Instruct","prompt":"hi","max_tokens":10,"temperature":0}' | jq
+```
 
 #### Environment Configurateion
 

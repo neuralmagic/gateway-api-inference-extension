@@ -5,7 +5,7 @@ resources:
 - ../../../../components/vllm/
 
 images:
-- name: quay.io/vllm-d/vllm-d-dev:0.0.2
+- name: quay.io/vllm-d/vllm-d-dev
   newName: ${VLLM_IMAGE}
   newTag: ${VLLM_TAG}
 
