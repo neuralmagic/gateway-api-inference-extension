@@ -21,5 +21,5 @@ import (
 )
 
 func init() {
-	defaultConfig.scorers[scorers.LoadBasedScorer{}] = 1.0
+	defaultConfig.scorers[&scorers.LoadBasedScorer{}] = 1.0
 }
