@@ -73,7 +73,6 @@ type RequestContext struct {
 	TargetPod                 string
 	TargetEndpoint            string
 	Model                     string
-	SessionID                 string
 	ResolvedTargetModel       string
 	RequestReceivedTimestamp  time.Time
 	ResponseCompleteTimestamp time.Time
@@ -110,8 +109,6 @@ const (
 	BodyResponseResponsesComplete    StreamRequestState = 6
 	TrailerResponseResponsesComplete StreamRequestState = 7
 )
-
-const SessionIDHeader = "Session-ID"
 
 func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer) error {
 	ctx := srv.Context()
@@ -203,15 +200,6 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 					loggerTrace.Info("model server is streaming response")
 				}
 			}
-			// Save session is -> pod mapping
-			allPods := s.datastore.PodGetAll()
-
-			for _, pod := range allPods {
-				if pod.GetPod().NamespacedName.String() == reqCtx.TargetPod {
-					s.datastore.SetPodForSession(reqCtx.SessionID, pod.GetPod())
-					break
-				}
-			}
 
 			reqCtx.RequestState = ResponseRecieved
 			reqCtx.respHeaderResp = &extProcPb.ProcessingResponse{
@@ -225,12 +213,6 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 											// This is for debugging purpose only.
 											Key:      "x-went-into-resp-headers",
 											RawValue: []byte("true"),
-										},
-									},
-									{
-										Header: &configPb.HeaderValue{
-											Key:      SessionIDHeader,
-											RawValue: []byte(reqCtx.SessionID),
 										},
 									},
 								},
