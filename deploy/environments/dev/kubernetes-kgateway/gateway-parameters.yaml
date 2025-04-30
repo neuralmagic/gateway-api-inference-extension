@@ -3,7 +3,7 @@ kind: GatewayParameters
 metadata:
   name: custom-gw-params
 spec:
-  kube: 
+  kube:
     envoyContainer:
       securityContext:
         allowPrivilegeEscalation: false
@@ -11,12 +11,12 @@ spec:
         runAsNonRoot: true
         runAsUser: "${PROXY_UID}"
     service:
-      type: NodePort
+      type: ${GATEWAY_SERVICE_TYPE}
       extraLabels:
         gateway: custom
     podTemplate:
       extraLabels:
         gateway: custom
-      securityContext: 
+      securityContext:
         seccompProfile:
           type: RuntimeDefault

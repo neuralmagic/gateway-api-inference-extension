@@ -126,8 +126,12 @@ vet: ## Run go vet against code.
 # test: manifests generate fmt vet envtest image-build ## Run tests.
 # 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -race -coverprofile cover.out
 
+.PHONY: test-unit
+test-unit: ## Run unit tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./pkg/... -race -coverprofile cover.out
+
 .PHONY: test-integration
-test-integration: ## Run tests.
+test-integration: ## Run integration tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./test/integration/epp/... -race -coverprofile cover.out
 
 .PHONY: test-e2e
@@ -452,7 +456,7 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  for arch in amd64; do \
 	    ARCH_TAG=$$FINAL_TAG-$$arch; \
 	    echo "📦 Building for architecture: $$arch"; \
-	    buildah build --arch=$$arch --os=linux -t $(IMG)-$$arch . || exit 1; \
+		buildah build --arch=$$arch --os=linux --layers -t $(IMG)-$$arch . || exit 1; \
 	    echo "🚀 Pushing image: $(IMG)-$$arch"; \
 	    buildah push $(IMG)-$$arch docker://$(IMG)-$$arch || exit 1; \
 	  done; \
@@ -780,11 +784,8 @@ environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
 # ------------------------------------------------------------------------------
 .PHONY: clean.environment.dev.kubernetes
 clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
-ifndef NAMESPACE
-	$(error "Error: NAMESPACE is required but not set")
-endif
-	@echo "INFO: cleaning up dev environment in $(NAMESPACE)"
-	kustomize build deploy/environments/dev/kubernetes-kgateway | envsubst | kubectl -n "${NAMESPACE}" delete -f -
+	@CLEAN=true ./scripts/kubernetes-dev-env.sh 2>&1
+	@echo "INFO: Finished cleanup of development environment for $(VLLM_MODE) mode in namespace $(NAMESPACE)"
 
 # -----------------------------------------------------------------------------
 # TODO: these are old aliases that we still need for the moment, but will be

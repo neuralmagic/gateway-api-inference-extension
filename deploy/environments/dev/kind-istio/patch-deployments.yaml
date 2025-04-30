@@ -9,7 +9,7 @@ spec:
       - name: epp
         args:
         - -poolName
-        - "vllm-llama3-8b-instruct"
+        - ${POOL_NAME}
         - -poolNamespace
         - "default"
         - -v

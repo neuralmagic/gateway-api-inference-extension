@@ -25,6 +25,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Set the host port to map to the Gateway's inbound port (30080)
 : "${GATEWAY_HOST_PORT:=30080}"
 
+# Set the inference pool name for the deployment
+export POOL_NAME="${POOL_NAME:-vllm-llama3-8b-instruct}"
+
+# Set the model name to deploy
+export MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
 # ------------------------------------------------------------------------------
 # Setup & Requirement Checks
 # ------------------------------------------------------------------------------
@@ -113,7 +118,7 @@ kustomize build --enable-helm deploy/components/crds-kgateway |
 
 # Deploy the environment to the "default" namespace
 kustomize build --enable-helm deploy/environments/dev/kind-kgateway \
-	| sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
+	| envsubst | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
 	| kubectl --context ${KUBE_CONTEXT} apply -f -
 
 # Wait for all control-plane pods to be ready

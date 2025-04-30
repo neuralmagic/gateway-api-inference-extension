@@ -4,6 +4,8 @@ run:
 
 # Settings related to issues
 issues:
+  # Report issues on new code only (since we're brining in from upstream)
+  new: true
   # Which dirs to exclude: issues from them won't be reported
   exclude-dirs:
     - bin

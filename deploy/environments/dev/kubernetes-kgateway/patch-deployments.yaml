@@ -11,7 +11,7 @@ spec:
       - name: epp
         args:
         - -poolName
-        - "vllm-llama3-8b-instruct"
+        - ${POOL_NAME}
         - -poolNamespace
         - ${NAMESPACE}
         - -v
@@ -22,13 +22,11 @@ spec:
         - "9002"
         - -grpcHealthPort
         - "9003"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm-sim
-spec:
-  template:
-    spec:
-      imagePullSecrets:
-      - name: ${REGISTRY_SECRET}
+        env:
+          - name: KVCACHE_INDEXER_REDIS_ADDR
+            value: ${REDIS_HOST}:${REDIS_PORT}
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: hf-token
+                key: ${HF_SECRET_KEY}

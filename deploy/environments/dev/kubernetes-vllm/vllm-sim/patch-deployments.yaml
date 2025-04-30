@@ -1,0 +1,10 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-sim
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+      - name: ${REGISTRY_SECRET}

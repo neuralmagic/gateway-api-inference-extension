@@ -14,29 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pickers
+package picker
 
 import (
 	"fmt"
 	"math/rand"
 
+	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
-// RandomPicker picks a pod randomly from the list of candidates.
+var _ plugins.Picker = &RandomPicker{}
+
+// RandomPicker picks a random pod from the list of candidates.
 type RandomPicker struct{}
 
-var _ types.Picker = &RandomPicker{}
-
-// Name returns the name of the picker.
-func (rp *RandomPicker) Name() string {
+func (p *RandomPicker) Name() string {
 	return "random"
 }
 
-// Pick selects a random pod from the list of candidates.
-func (rp *RandomPicker) Pick(ctx *types.Context, pods []types.Pod) (*types.Result, error) {
-	ctx.Logger.V(logutil.DEBUG).Info(fmt.Sprintf("Selecting a random pod from %d candidates: %+v", len(pods), pods))
-	i := rand.Intn(len(pods))
-	return &types.Result{TargetPod: pods[i]}, nil
+func (p *RandomPicker) Pick(ctx *types.SchedulingContext, scoredPods []*types.ScoredPod) *types.Result {
+	ctx.Logger.V(logutil.DEBUG).Info(fmt.Sprintf("Selecting a random pod from %d candidates: %+v", len(scoredPods), scoredPods))
+	i := rand.Intn(len(scoredPods))
+	return &types.Result{TargetPod: scoredPods[i]}
 }

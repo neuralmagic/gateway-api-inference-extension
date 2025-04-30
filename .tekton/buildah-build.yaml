@@ -17,15 +17,6 @@ spec:
     - name: container-storage
       mountPath: /var/lib/containers
   steps:
-    # - name: setup-qemu
-    #   image: us.icr.io/ibm-hc4ai-operator/qemu-user-static:latest
-    #   imagePullPolicy: IfNotPresent
-    #   securityContext:
-    #     privileged: true
-    #   script: |
-    #     #!/bin/sh
-    #     echo "⚙️ Attempting QEMU registration..."
-    #     /register || echo "ℹ️ Skipping errors – QEMU might already be registered"
     - name: build
       image: quay.io/buildah/stable:latest
       imagePullPolicy: IfNotPresent

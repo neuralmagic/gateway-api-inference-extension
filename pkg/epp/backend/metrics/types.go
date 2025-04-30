@@ -43,18 +43,17 @@ type PodMetricsFactory struct {
 func (f *PodMetricsFactory) NewPodMetrics(parentCtx context.Context, in *corev1.Pod, ds Datastore) PodMetrics {
 	pod := toInternalPod(in)
 	pm := &podMetrics{
-		pmc:       f.pmc,
-		ds:        ds,
-		interval:  f.refreshMetricsInterval,
-		parentCtx: parentCtx,
-		once:      sync.Once{},
-		done:      make(chan struct{}),
-		logger:    log.FromContext(parentCtx).WithValues("pod", pod.NamespacedName),
+		pmc:      f.pmc,
+		ds:       ds,
+		interval: f.refreshMetricsInterval,
+		once:     sync.Once{},
+		done:     make(chan struct{}),
+		logger:   log.FromContext(parentCtx).WithValues("pod", pod.NamespacedName),
 	}
 	pm.pod.Store(pod)
 	pm.metrics.Store(newMetrics())
 
-	pm.startRefreshLoop()
+	pm.startRefreshLoop(parentCtx)
 	return pm
 }
 
@@ -66,9 +65,19 @@ type PodMetrics interface {
 	String() string
 }
 
+type PodRole int
+
+const (
+	Prefill PodRole = iota
+	Decode
+	Both
+	Unknown
+)
+
 type Pod struct {
 	NamespacedName types.NamespacedName
 	Address        string
+	Role           PodRole
 }
 
 func (p *Pod) String() string {
@@ -88,6 +97,7 @@ func (p *Pod) Clone() *Pod {
 			Namespace: p.NamespacedName.Namespace,
 		},
 		Address: p.Address,
+		Role:    p.Role,
 	}
 }
 

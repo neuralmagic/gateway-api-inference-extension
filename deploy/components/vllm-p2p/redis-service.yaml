@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${REDIS_SVC_NAME}
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: redis-lookup-server
+spec:
+  ports:
+    - name: lookupserver-port
+      protocol: TCP
+      port: ${REDIS_PORT}
+      targetPort: ${REDIS_TARGET_PORT}
+  type: ${REDIS_SERVICE_TYPE}
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: redis-lookup-server

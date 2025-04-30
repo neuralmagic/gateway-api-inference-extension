@@ -31,6 +31,7 @@ type LLMRequest struct {
 	// Target models is a map of target model name to weight.
 	TargetModels map[string]int
 	Prompt       string
+	Headers      map[string]string
 	// Resolved target model is the final target model after traffic split.
 	ResolvedTargetModel string
 	Critical            bool
@@ -41,12 +42,24 @@ func (r *LLMRequest) String() string {
 	return fmt.Sprintf("Model: %s, TargetModels: %v, ResolvedTargetModel: %s, Critical: %t, PromptLength: %v", r.Model, r.TargetModels, r.ResolvedTargetModel, r.Critical, len(r.Prompt))
 }
 
-// Context holds contextual information during a scheduling operation.
-type Context struct {
+type Pod interface {
+	GetPod() *backendmetrics.Pod
+	GetMetrics() *backendmetrics.Metrics
+	String() string
+}
+
+type ScoredPod struct {
+	Pod
+	Score float64
+}
+
+// SchedulingContext holds contextual information during a scheduling operation.
+type SchedulingContext struct {
 	context.Context
-	Logger       logr.Logger
-	Req          *LLMRequest
-	PodsSnapshot []Pod
+	Logger         logr.Logger
+	Req            *LLMRequest
+	PodsSnapshot   []Pod
+	MutatedHeaders map[string]string
 }
 
 func (pm *PodMetrics) String() string {
@@ -64,27 +77,19 @@ func (pm *PodMetrics) GetMetrics() *backendmetrics.Metrics {
 	return pm.Metrics
 }
 
-func (pm *PodMetrics) SetScore(score float64) {
-	pm.score = score
-}
-
-func (pm *PodMetrics) Score() float64 {
-	return pm.score
-}
-
 type PodMetrics struct {
-	score float64
 	*backendmetrics.Pod
 	*backendmetrics.Metrics
 }
 
-func NewContext(ctx context.Context, req *LLMRequest, pods []Pod) *Context {
+func NewSchedulingContext(ctx context.Context, req *LLMRequest, pods []Pod) *SchedulingContext {
 	logger := log.FromContext(ctx).WithValues("request", req)
-	return &Context{
-		Context:      ctx,
-		Logger:       logger,
-		Req:          req,
-		PodsSnapshot: pods,
+	return &SchedulingContext{
+		Context:        ctx,
+		Logger:         logger,
+		Req:            req,
+		PodsSnapshot:   pods,
+		MutatedHeaders: make(map[string]string),
 	}
 }
 
@@ -98,5 +103,6 @@ func ToSchedulerPodMetrics(pods []backendmetrics.PodMetrics) []Pod {
 
 // Result captures the scheduler result.
 type Result struct {
-	TargetPod Pod
+	TargetPod      Pod
+	MutatedHeaders map[string]string
 }

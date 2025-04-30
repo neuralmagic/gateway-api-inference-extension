@@ -32,6 +32,10 @@ import (
 
 const (
 	fetchMetricsTimeout = 5 * time.Second
+	roleLabel           = "llmd.org/role"
+	rolePrefill         = "prefill"
+	roleDecode          = "decode"
+	roleBoth            = "both"
 )
 
 type podMetrics struct {
@@ -41,9 +45,8 @@ type podMetrics struct {
 	ds       Datastore
 	interval time.Duration
 
-	parentCtx context.Context
-	once      sync.Once // ensure the StartRefreshLoop is only called once.
-	done      chan struct{}
+	once sync.Once // ensure the StartRefreshLoop is only called once.
+	done chan struct{}
 
 	logger logr.Logger
 }
@@ -68,6 +71,26 @@ func (pm *podMetrics) UpdatePod(in *corev1.Pod) {
 	pm.pod.Store(toInternalPod(in))
 }
 
+func podLabelToRole(in *corev1.Pod) PodRole {
+	roleLabel, ok := in.ObjectMeta.Labels[roleLabel]
+
+	if ok {
+		switch roleLabel {
+		case rolePrefill:
+			return Prefill
+		case roleDecode:
+			return Decode
+		case roleBoth:
+			return Both
+		default:
+			return Unknown
+		}
+	}
+
+	// role label is missing
+	return Both
+}
+
 func toInternalPod(in *corev1.Pod) *Pod {
 	return &Pod{
 		NamespacedName: types.NamespacedName{
@@ -75,12 +98,13 @@ func toInternalPod(in *corev1.Pod) *Pod {
 			Namespace: in.Namespace,
 		},
 		Address: in.Status.PodIP,
+		Role:    podLabelToRole(in),
 	}
 }
 
 // start starts a goroutine exactly once to periodically update metrics. The goroutine will be
-// stopped either when stop() is called, or the parentCtx is cancelled.
-func (pm *podMetrics) startRefreshLoop() {
+// stopped either when stop() is called, or the given ctx is cancelled.
+func (pm *podMetrics) startRefreshLoop(ctx context.Context) {
 	pm.once.Do(func() {
 		go func() {
 			pm.logger.V(logutil.DEFAULT).Info("Starting refresher", "pod", pm.GetPod())
@@ -90,7 +114,7 @@ func (pm *podMetrics) startRefreshLoop() {
 				select {
 				case <-pm.done:
 					return
-				case <-pm.parentCtx.Done():
+				case <-ctx.Done():
 					return
 				case <-ticker.C: // refresh metrics periodically
 					if err := pm.refreshMetrics(); err != nil {
