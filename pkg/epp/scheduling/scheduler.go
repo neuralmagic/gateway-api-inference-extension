@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/gateway-api-inference-extension/api/v1alpha2"
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/metrics"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
@@ -92,6 +93,7 @@ type Scheduler struct {
 }
 
 type Datastore interface {
+	PoolGet() (*v1alpha2.InferencePool, error)
 	PodGetAll() []backendmetrics.PodMetrics
 }
 
@@ -100,10 +102,15 @@ func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types
 	logger := log.FromContext(ctx).WithValues("request", req)
 	loggerDebug := logger.V(logutil.DEBUG)
 
+	pool, err := s.datastore.PoolGet()
+	if err != nil {
+		return nil, errutil.Error{Code: errutil.Internal, Msg: "failed to find a target pod"} // pool not defined, no pods
+	}
+
 	// Snapshot pod metrics from the datastore to:
 	// 1. Reduce concurrent access to the datastore.
 	// 2. Ensure consistent data during the scheduling operation of a request.
-	sCtx := types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(s.datastore.PodGetAll()))
+	sCtx := types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(s.datastore.PodGetAll()), pool.Spec.TargetPortNumber)
 	loggerDebug.Info(fmt.Sprintf("Scheduling a request, Metrics: %+v", sCtx.PodsSnapshot))
 
 	s.runPreSchedulePlugins(sCtx)
@@ -119,6 +126,7 @@ func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types
 
 	s.runPostSchedulePlugins(sCtx, result)
 
+	result.MutatedHeaders = sCtx.MutatedHeaders
 	return result, nil
 }
 

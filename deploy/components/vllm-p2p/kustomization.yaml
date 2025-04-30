@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------------------
+# vLLM P2P Deployment
+#
+# This deploys the full vLLM model server, capable of serving real models such
+# as Llama 3.1-8B-Instruct via the OpenAI-compatible API. It is intended for
+# environments with GPU resources and where full inference capabilities are
+# required.
+# in additon it add LMcache  a LLM serving engine extension using Redis to vLLM image
+#
+# The deployment can be customized using environment variables to set:
+#   - The container image and tag (VLLM_IMAGE, VLLM_TAG)
+#   - The model to load (MODEL_NAME)
+#
+# This setup is suitable for testing on Kubernetes (including
+# GPU-enabled nodes or clusters with scheduling for `nvidia.com/gpu`).
+# -----------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - vllm-deployment.yaml
+  - redis-deployment.yaml
+  - redis-service.yaml
+  - secret.yaml
+
+images:
+  - name: vllm/vllm-openai
+    newName: ${VLLM_IMAGE}
+    newTag: ${VLLM_TAG}
+  - name: redis
+    newName: ${REDIS_IMAGE}
+    newTag: ${REDIS_TAG}

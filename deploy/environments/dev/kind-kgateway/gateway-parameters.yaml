@@ -1,0 +1,13 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: custom-gw-params
+spec:
+  kube: 
+    service:
+      type: NodePort
+      extraLabels:
+        gateway: inference-gateway
+    podTemplate:
+      extraLabels:
+        gateway: inference-gateway

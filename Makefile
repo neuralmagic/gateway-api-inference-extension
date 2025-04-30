@@ -3,6 +3,9 @@ IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
+TARGETOS ?= linux
+TARGETARCH ?= amd64
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -394,14 +397,13 @@ endef
 SHELL := /usr/bin/env bash
 
 # Defaults
-PROJECT_NAME ?= gateway-api-inference-extension
+PROJECT_NAME ?= llm-d-gateway-api-inference-extension
 DEV_VERSION ?= 0.0.1
 PROD_VERSION ?= 0.0.0
-IMAGE_TAG_BASE ?= quay.io/vllm-d/$(PROJECT_NAME)
+IMAGE_TAG_BASE ?= quay.io/llm-d/$(PROJECT_NAME)/epp
 IMG = $(IMAGE_TAG_BASE):$(DEV_VERSION)
-NAMESPACE ?= hc4ai-operator
 
-CONTAINER_TOOL := $(shell command -v docker >/dev/null 2>&1 && echo docker || command -v podman >/dev/null 2>&1 && echo podman || echo "")
+# CONTAINER_TOOL := $(shell command -v docker >/dev/null 2>&1 && echo docker || command -v podman >/dev/null 2>&1 && echo podman || echo "")
 BUILDER := $(shell command -v buildah >/dev/null 2>&1 && echo buildah || echo $(CONTAINER_TOOL))
 PLATFORMS ?= linux/amd64 # linux/arm64 # linux/s390x,linux/ppc64le
 
@@ -430,7 +432,7 @@ test: check-ginkgo ## Run tests
 post-deploy-test: ## Run post deployment tests
 	echo Success!
 	@echo "Post-deployment tests passed."
-	
+
 .PHONY: lint
 lint: check-golangci-lint ## Run lint
 	@printf "\033[33;1m==== Running linting ====\033[0m\n"
@@ -450,15 +452,22 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	@echo "✅ Using builder: $(BUILDER)"
 	@if [ "$(BUILDER)" = "buildah" ]; then \
 	  echo "🔧 Buildah detected: Performing multi-arch build..."; \
+	  FINAL_TAG=$(IMG); \
 	  for arch in amd64; do \
+	    ARCH_TAG=$$FINAL_TAG-$$arch; \
 	    echo "📦 Building for architecture: $$arch"; \
-	    buildah build --arch=$$arch --os=linux -t $(IMG)-$$arch . || exit 1; \
+		buildah build --arch=$$arch --os=linux --layers -t $(IMG)-$$arch . || exit 1; \
 	    echo "🚀 Pushing image: $(IMG)-$$arch"; \
 	    buildah push $(IMG)-$$arch docker://$(IMG)-$$arch || exit 1; \
 	  done; \
+	  echo "🧼 Removing existing manifest (if any)..."; \
+	  buildah manifest rm $$FINAL_TAG || true; \
 	  echo "🧱 Creating and pushing manifest list: $(IMG)"; \
 	  buildah manifest create $(IMG); \
-	  buildah manifest add $(IMG) $(IMG)-amd64; \
+	  for arch in amd64; do \
+	    ARCH_TAG=$$FINAL_TAG-$$arch; \
+	    buildah manifest add $$FINAL_TAG $$ARCH_TAG; \
+	  done; \
 	  buildah manifest push --all $(IMG) docker://$(IMG); \
 	elif [ "$(BUILDER)" = "docker" ]; then \
 	  echo "🐳 Docker detected: Building with buildx..."; \
@@ -478,13 +487,13 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	fi
 
 .PHONY:	image-build
-image-build: check-container-tool load-version-json ## Build Docker image ## Build Docker image using $(CONTAINER_TOOL)
-	@printf "\033[33;1m==== Building Docker image $(IMG) ====\033[0m\n"
+image-build: check-container-tool load-version-json ## Build container image using $(CONTAINER_TOOL)
+	@printf "\033[33;1m==== Building container image $(IMG) ====\033[0m\n"
 	$(CONTAINER_TOOL) build --build-arg TARGETOS=$(TARGETOS) --build-arg TARGETARCH=$(TARGETARCH) -t $(IMG) .
 
 .PHONY: image-push
-image-push: check-container-tool load-version-json ## Push Docker image $(IMG) to registry
-	@printf "\033[33;1m==== Pushing Docker image $(IMG) ====\033[0m\n"
+image-push: check-container-tool load-version-json ## Push container image $(IMG) to registry
+	@printf "\033[33;1m==== Pushing container image $(IMG) ====\033[0m\n"
 	$(CONTAINER_TOOL) push $(IMG)
 
 ##@ Install/Uninstall Targets
@@ -511,77 +520,6 @@ uninstall-docker: check-container-tool ## Uninstall app from $(CONTAINER_TOOL)
 	@echo "Stopping and removing container in $(CONTAINER_TOOL)..."
 	-$(CONTAINER_TOOL) stop $(PROJECT_NAME)-container && $(CONTAINER_TOOL) rm $(PROJECT_NAME)-container
 @echo "$(CONTAINER_TOOL) uninstallation complete. Remove alias if set: unalias $(PROJECT_NAME)"
-
-### Kubernetes Targets (kubectl)
-
-.PHONY: install-k8s
-install-k8s: check-kubectl check-kustomize check-envsubst ## Install on Kubernetes
-	export PROJECT_NAME=${PROJECT_NAME}
-	export NAMESPACE=${NAMESPACE}
-	@echo "Creating namespace (if needed) and setting context to $(NAMESPACE)..."
-	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
-	kubectl config set-context --current --namespace=$(NAMESPACE)
-	@echo "Deploying resources from deploy/ ..."
-	# Build the kustomization from deploy, substitute variables, and apply the YAML
-	kustomize build deploy | envsubst | kubectl apply -f -
-	@echo "Waiting for pod to become ready..."
-	sleep 5
-	@POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -o jsonpath='{.items[0].metadata.name}'); \
-	echo "Kubernetes installation complete."; \
-	echo "To use the app, run:"; \
-	echo "alias $(PROJECT_NAME)='kubectl exec -n $(NAMESPACE) -it $$POD -- /app/$(PROJECT_NAME)'"
-	
-.PHONY: uninstall-k8s
-uninstall-k8s: check-kubectl check-kustomize check-envsubst ## Uninstall from Kubernetes
-	export PROJECT_NAME=${PROJECT_NAME}
-	export NAMESPACE=${NAMESPACE}
-	@echo "Removing resources from Kubernetes..."
-	kustomize build deploy | envsubst | kubectl delete --force -f - || true
-	POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -o jsonpath='{.items[0].metadata.name}'); \
-	echo "Deleting pod: $$POD"; \
-	kubectl delete pod "$$POD" --force --grace-period=0 || true; \
-	echo "Kubernetes uninstallation complete. Remove alias if set: unalias $(PROJECT_NAME)"
-
-### OpenShift Targets (oc)
-
-.PHONY: install-openshift
-install-openshift: check-kubectl check-kustomize check-envsubst ## Install on OpenShift
-	@echo $$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION
-	@echo "Creating namespace $(NAMESPACE)..."
-	kubectl create namespace $(NAMESPACE) 2>/dev/null || true
-	@echo "Deploying common resources from deploy/ ..."
-	# Build and substitute the base manifests from deploy, then apply them
-	kustomize build deploy | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -n $(NAMESPACE) -f -
-	@echo "Waiting for pod to become ready..."
-	sleep 5
-	@POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -n $(NAMESPACE) -o jsonpath='{.items[0].metadata.name}'); \
-	echo "OpenShift installation complete."; \
-	echo "To use the app, run:"; \
-	echo "alias $(PROJECT_NAME)='kubectl exec -n $(NAMESPACE) -it $$POD -- /app/$(PROJECT_NAME)'" 
-
-.PHONY: uninstall-openshift
-uninstall-openshift: check-kubectl check-kustomize check-envsubst ## Uninstall from OpenShift
-	@echo "Removing resources from OpenShift..."
-	kustomize build deploy | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete --force -f - || true
-	# @if kubectl api-resources --api-group=route.openshift.io | grep -q Route; then \
-	#   envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' < deploy/openshift/route.yaml | kubectl delete --force -f - || true; \
-	# fi
-	@POD=$$(kubectl get pod -l app=$(PROJECT_NAME)-statefulset -n $(NAMESPACE) -o jsonpath='{.items[0].metadata.name}'); \
-	echo "Deleting pod: $$POD"; \
-	kubectl delete pod "$$POD" --force --grace-period=0 || true; \
-	echo "OpenShift uninstallation complete. Remove alias if set: unalias $(PROJECT_NAME)"
-
-### RBAC Targets (using kustomize and envsubst)
-
-.PHONY: install-rbac
-install-rbac: check-kubectl check-kustomize check-envsubst ## Install RBAC
-	@echo "Applying RBAC configuration from deploy/rbac..."
-	kustomize build deploy/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl apply -f -
-
-.PHONY: uninstall-rbac
-uninstall-rbac: check-kubectl check-kustomize check-envsubst ## Uninstall RBAC
-	@echo "Removing RBAC configuration from deploy/rbac..."
-	kustomize build deploy/rbac | envsubst '$$PROJECT_NAME $$NAMESPACE $$IMAGE_TAG_BASE $$VERSION' | kubectl delete -f - || true
 
 
 ##@ Version Extraction
@@ -611,13 +549,13 @@ extract-version-info: check-jq
 load-version-json: check-jq
 	@if [ "$(DEV_VERSION)" = "0.0.1" ]; then \
 	  DEV_VERSION=$$(jq -r '."dev-version"' .version.json); \
-	  PROD_VERSION=$$(jq -r '."dev-version"' .version.json); \
+	  PROD_VERSION=$$(jq -r '."prod-version"' .version.json); \
 	  echo "✔ Loaded DEV_VERSION from .version.json: $$DEV_VERSION"; \
 	  echo "✔ Loaded PROD_VERSION from .version.json: $$PROD_VERSION"; \
 	  export DEV_VERSION; \
 	  export PROD_VERSION; \
 	fi && \
-	CURRENT_DEFAULT="quay.io/vllm-d/$(PROJECT_NAME)"; \
+	CURRENT_DEFAULT="quay.io/llm-d/$(PROJECT_NAME)"; \
 	if [ "$(IMAGE_TAG_BASE)" = "$$CURRENT_DEFAULT" ]; then \
 	  IMAGE_TAG_BASE=$$(jq -r '."dev-registry"' .version.json); \
 	  echo "✔ Loaded IMAGE_TAG_BASE from .version.json: $$IMAGE_TAG_BASE"; \
@@ -718,10 +656,152 @@ check-alias: check-container-tool
 	  echo "✅ Alias is likely to work: alias $(PROJECT_NAME)='$(CONTAINER_TOOL) exec -it $(PROJECT_NAME)-container /app/$(PROJECT_NAME)'"; \
 	fi
 
+# This is being used for tekton builds in the CI/CD pipeline, to provide a
+# default namespace to do a test deployment of the Kubernetes dev environment.
 .PHONY: print-namespace
-print-namespace: ## Print the current namespace
-	@echo "$(NAMESPACE)"
+print-namespace:
+	@echo "hc4ai-operator"
 
 .PHONY: print-project-name
 print-project-name: ## Print the current project name
 	@echo "$(PROJECT_NAME)"
+
+.PHONY: install-hooks
+install-hooks: ## Install git hooks
+	git config core.hooksPath hooks
+
+# ==============================================================================
+# Development Environments - Kubernetes in Docker (KIND)
+# ==============================================================================
+
+KIND_CLUSTER_NAME ?= gie-dev
+
+# ------------------------------------------------------------------------------
+# Kind Development Environment - Deploy
+#
+# This target will deploy a local kind cluster with the GIE stack deployed into
+# the default namespace for development and testing.
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind
+environment.dev.kind:
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-dev-env.sh
+
+# ------------------------------------------------------------------------------
+# Kind Development Environment - Update
+#
+# This target will build the current changes into an image, load them into an
+# existing kind cluster and perform a rollout so that the new changes are
+# reflected in the environment.
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kind.update
+environment.dev.kind.update: image-build
+	@echo "INFO: Loading images into cluster"
+	CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./scripts/kind-load-images.sh 2>&1
+	@echo "INFO: Restarting the Endpoint Picker Deployment"
+	$(KUBECTL) --context kind-$(KIND_CLUSTER_NAME) -n default rollout restart deployment endpoint-picker
+	$(KUBECTL) --context kind-$(KIND_CLUSTER_NAME) -n default rollout status deployment endpoint-picker
+
+# ------------------------------------------------------------------------------
+# Kind Development Environment - Teardown
+#
+# This target will tear down the entire Kind cluster.
+# ------------------------------------------------------------------------------
+.PHONY: clean.environment.dev.kind
+clean.environment.dev.kind:
+	@echo "INFO: cleaning up kind cluster $(KIND_CLUSTER_NAME)"
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
+
+# ==============================================================================
+# Development Environments - Kubernetes
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Deploy Infrastructure
+#
+# This target deploys infrastructure requirements for the entire cluster.
+# Among other things, this includes CRDs and operators which all users of the
+# cluster need for development (e.g. Gateway API, Istio, etc).
+#
+# **Warning**: This needs to be run and regularly updated by an admin to
+# support the individual development environments on the cluster.
+#
+# **Warning**: Only run this if you're certain you should be running it. It
+# has implications for all users of the cluster!
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kubernetes.infrastructure
+environment.dev.kubernetes.infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "Deploying OpenShift Infrastructure Components"
+	kustomize build deploy/components/crds-gateway-api | kubectl apply --server-side --force-conflicts -f -
+	kustomize build deploy/components/crds-gie | kubectl apply --server-side --force-conflicts -f -
+	kustomize build --enable-helm deploy/components/crds-kgateway | kubectl apply --server-side --force-conflicts -f -
+	kustomize build --enable-helm deploy/environments/dev/kubernetes-kgateway-infra | kubectl apply --server-side --force-conflicts -f -
+	kubectl -n kgateway-system wait deployment/kgateway --for=condition=Available --timeout=60s
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Teardown Infrastructure
+#
+# This target removes all infrastructure components (e.g. CRDs, operators,
+# etc) for the entire cluster.
+#
+# **Warning**: Only run this if you're certain you should be running it. **This
+# will disrupt everyone using the cluster**. Generally this should only be run
+# when the infrastructure components have undergone very significant change, and
+# you need to do a hard cleanup and re-deploy.
+# ------------------------------------------------------------------------------
+.PHONY: clean.environment.dev.kubernetes.infrastructure
+clean.environment.dev.kubernetes.infrastructure:
+ifeq ($(strip $(INFRASTRUCTURE_OVERRIDE)),true)
+	@echo "This is extremely destructive. We'll provide 5 seconds before starting to give you a chance to cancel."
+	sleep 5
+	@echo "Tearing Down OpenShift Infrastructure Components"
+	kustomize build --enable-helm deploy/environments/dev/kubernetes-kgateway-infra | kubectl delete -f - || true
+	kustomize build --enable-helm deploy/components/crds-kgateway | kubectl delete -f - || true
+	kustomize build deploy/components/crds-gie | kubectl delete -f - || true
+	kustomize build deploy/components/crds-gateway-api | kubectl delete -f - || true
+else
+	$(error "Error: The environment variable INFRASTRUCTURE_OVERRIDE must be set to true in order to run this target.")
+endif
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Deploy
+#
+# This target deploys the GIE stack in a specific namespace for development and
+# testing.
+# ------------------------------------------------------------------------------
+.PHONY: environment.dev.kubernetes
+environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
+	./scripts/kubernetes-dev-env.sh 2>&1
+	@echo "INFO: Development environment deployed to namespace $(NAMESPACE)"
+
+# ------------------------------------------------------------------------------
+# Kubernetes Development Environment - Teardown
+#
+# Tears down the development environment.
+# ------------------------------------------------------------------------------
+.PHONY: clean.environment.dev.kubernetes
+clean.environment.dev.kubernetes: check-kubectl check-kustomize check-envsubst
+	@CLEAN=true ./scripts/kubernetes-dev-env.sh 2>&1
+	@echo "INFO: Finished cleanup of development environment for $(VLLM_MODE) mode in namespace $(NAMESPACE)"
+
+# -----------------------------------------------------------------------------
+# TODO: these are old aliases that we still need for the moment, but will be
+# cleaned up later.
+#
+# See: https://github.com/neuralmagic/gateway-api-inference-extension/issues/28
+# -----------------------------------------------------------------------------
+
+.PHONY: install-openshift-infrastructure
+install-openshift-infrastructure: environment.dev.kubernetes.infrastructure
+
+.PHONY: uninstall-openshift-infrastructure
+uninstall-openshift-infrastructure: clean.environment.dev.kubernetes.infrastructure
+
+.PHONY: install-openshift
+install-openshift: environment.dev.kubernetes
+
+.PHONY: uninstall-openshift
+uninstall-openshift: clean.environment.dev.kubernetes

@@ -1,0 +1,20 @@
+# ------------------------------------------------------------------------------
+# OpenShift Environment - Infrastructure
+#
+# This provides the infrastructure-level requirements that individual
+# development environments (see `deploy/environments/dev/kubernetes`) will need
+# (e.g. CRDs, Operators, RBAC, etc). It uses Istio as the control-plane for
+# Gateways.
+#
+# **WARNING**: Needs to be run once, and regularly updated on an OpenShift
+# cluster by an administrator prior to deploying individual environments on
+# that cluster with `deploy/environments/dev/kubernetes`.
+#
+# ------------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../components/crds/
+- ../../../components/istio-control-plane/
+- rbac.yaml

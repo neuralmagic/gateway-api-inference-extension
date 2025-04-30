@@ -51,7 +51,7 @@ func TestFilter(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := types.NewSchedulingContext(context.Background(), test.req, test.input)
+			ctx := types.NewSchedulingContext(context.Background(), test.req, test.input, 0)
 			got := test.filter.Filter(ctx, test.input)
 
 			if diff := cmp.Diff(test.output, got); diff != "" {
@@ -186,7 +186,7 @@ func TestFilterFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := types.NewSchedulingContext(context.Background(), test.req, test.input)
+			ctx := types.NewSchedulingContext(context.Background(), test.req, test.input, 0)
 			got := test.f(ctx, test.input)
 
 			if diff := cmp.Diff(test.output, got); diff != "" {
@@ -243,7 +243,7 @@ func TestLoRASoftAffinityDistribution(t *testing.T) {
 			},
 		},
 	}
-	ctx := types.NewSchedulingContext(context.Background(), req, pods)
+	ctx := types.NewSchedulingContext(context.Background(), req, pods, 0)
 
 	// Run the filter function multiple times and count the results
 	affinityCount := 0

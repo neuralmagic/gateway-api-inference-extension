@@ -62,8 +62,10 @@ func (s *StreamingServer) HandleRequestBody(
 			return reqCtx, errutil.Error{Code: errutil.BadConfiguration, Msg: fmt.Sprintf("error getting target model name for model %v", modelObj.Name)}
 		}
 	}
+
 	llmReq := &schedulingtypes.LLMRequest{
 		Model:               model,
+		Headers:             reqCtx.RequestHeaders,
 		ResolvedTargetModel: modelName,
 		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
 	}
@@ -104,7 +106,7 @@ func (s *StreamingServer) HandleRequestBody(
 	reqCtx.TargetPod = targetPod.NamespacedName.String()
 	reqCtx.TargetEndpoint = endpoint
 
-	s.populateRequestHeaderResponse(reqCtx, endpoint, len(requestBodyBytes))
+	s.populateRequestHeaderResponse(reqCtx, endpoint, len(requestBodyBytes), res.MutatedHeaders)
 
 	reqCtx.reqBodyResp = &extProcPb.ProcessingResponse{
 		// The Endpoint Picker supports two approaches to communicating the target endpoint, as a request header
@@ -146,7 +148,12 @@ func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *Requ
 			return err
 		}
 		endpoint := pod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
-		s.populateRequestHeaderResponse(reqCtx, endpoint, 0)
+		s.populateRequestHeaderResponse(reqCtx, endpoint, 0, nil)
 	}
+
+	for _, header := range req.RequestHeaders.Headers.Headers {
+		reqCtx.RequestHeaders[header.Key] = header.Value
+	}
+
 	return nil
 }

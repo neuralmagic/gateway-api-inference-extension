@@ -1,0 +1,55 @@
+# -----------------------------------------------------------------------------
+# This provides access to authenticated users to create and manage Gateways
+# and attach GIE to them on development clusters.
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gateway-management
+rules:
+  # ---------------------------------------------------------------------------
+  # Gateway API
+  # ---------------------------------------------------------------------------
+  - apiGroups:
+    - gateway.networking.k8s.io
+    resources:
+    - gateways
+    - httproutes
+    - grpcroutes
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  # ---------------------------------------------------------------------------
+  # Gateway API Inference Extension (GIE)
+  # ---------------------------------------------------------------------------
+  - apiGroups:
+    - inference.networking.x-k8s.io
+    resources:
+    - inferencepools
+    - inferencemodels
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: authenticated-gateway-management
+subjects:
+  - kind: Group
+    name: system:authenticated
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: gateway-management
+  apiGroup: rbac.authorization.k8s.io

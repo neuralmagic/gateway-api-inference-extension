@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: endpoint-picker
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+      - name: ${REGISTRY_SECRET}
+      containers:
+      - name: epp
+        args:
+        - -poolName
+        - ${POOL_NAME}
+        - -poolNamespace
+        - ${NAMESPACE}
+        - -v
+        - "4"
+        - --zap-encoder
+        - "json"
+        - -grpcPort
+        - "9002"
+        - -grpcHealthPort
+        - "9003"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-sim
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+      - name: ${REGISTRY_SECRET}

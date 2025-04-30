@@ -33,6 +33,4 @@ WORKDIR /
 COPY --from=builder /workspace/bin/epp /app/epp
 USER 65532:65532
 
-CMD ["sleep", "infinity"]
-
-
+ENTRYPOINT ["/app/epp"]

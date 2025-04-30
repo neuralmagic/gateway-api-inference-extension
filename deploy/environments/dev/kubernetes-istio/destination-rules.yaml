@@ -1,0 +1,11 @@
+# **WARNING** Only use in testing scenarios
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: endpoint-picker-insecure-tls
+spec:
+  host: endpoint-picker
+  trafficPolicy:
+      tls:
+        mode: SIMPLE
+        insecureSkipVerify: true

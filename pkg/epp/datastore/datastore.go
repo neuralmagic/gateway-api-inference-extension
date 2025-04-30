@@ -80,6 +80,7 @@ func NewDatastore(parentCtx context.Context, pmf *backendmetrics.PodMetricsFacto
 		pods:            &sync.Map{},
 		pmf:             pmf,
 	}
+
 	return store
 }
 

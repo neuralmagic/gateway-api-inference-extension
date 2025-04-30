@@ -1,12 +1,12 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: gateway-api-inference-extension
+  name: llm-d-gateway-api-inference-extension
   annotations:
     pipelinesascode.tekton.dev/on-event: "[pull_request, push]"
     pipelinesascode.tekton.dev/on-target-branch: "[main, dev]"
     pipelinesascode.tekton.dev/task: "git-clone"
-    pipelinesascode.tekton.dev/max-keep-runs: "5"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/git-status: "true"
     pipelinesascode.tekton.dev/on-cel-expression: >
       (!has(body.ref) || body.ref == 'refs/heads/main' || body.ref == 'refs/heads/dev') &&
@@ -31,6 +31,10 @@ spec:
     - name: source_branch
       value: "{{ source_branch }}"
   pipelineSpec:
+    results:
+      - description: The common vulnerabilities and exposures (CVE) result
+        name: SCAN_OUTPUT
+        value: $(tasks.vulnerability-scan.results.SCAN_OUTPUT)
     params:
       - name: repo_url
       - name: revision
@@ -58,6 +62,12 @@ spec:
           - name: source
             workspace: source
 
+      - name: read-cluster-name
+        taskRef:
+          name: read-cluster-name
+        runAfter:
+          - fix-permissions
+
       # - name: debug-user
       #   taskSpec:
       #     workspaces:
@@ -82,7 +92,7 @@ spec:
         taskRef:
           name: print-branch-task
         runAfter:
-          - fix-permissions
+          - read-cluster-name
         params:
           - name: source-branch
             value: "$(params.source_branch)"
@@ -113,6 +123,9 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-lint-task
         runAfter:
@@ -126,11 +139,13 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-test-task
         runAfter:
           - go-lint
-          # - fetch-repository
         workspaces:
           - name: source
             workspace: source
@@ -140,6 +155,9 @@ spec:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-build-task
         runAfter:
@@ -159,7 +177,100 @@ spec:
         workspaces:
           - name: source
             workspace: source
-                        
+
+      - name: openshift-redeploy-h100
+        when:
+          - input: "$(params.runOptional)"
+            operator: in
+            values: ["true"]
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev", "main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
+        taskRef:
+          name: openshift-redeploy-task
+        params:
+          - name: source-branch
+            value: "$(params.source_branch)"
+          - name: prod-version
+            value: "$(tasks.extract-version-and-registry.results.prod-version)"
+          - name: dev-version
+            value: "$(tasks.extract-version-and-registry.results.dev-version)"
+          - name: prod_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.prod-image-tag-base)"
+          - name: dev_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
+        runAfter:
+          - extract-version-and-registry
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: go-test-post-deploy-h100
+        when:
+          - input: "$(params.runOptional)"
+            operator: in
+            values: ["true"]
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev", "main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
+        taskRef:
+          name: go-test-post-deploy-task
+        params:
+          - name: source-branch
+            value: "$(params.source_branch)"
+          - name: prod-version
+            value: "$(tasks.extract-version-and-registry.results.prod-version)"
+          - name: dev-version
+            value: "$(tasks.extract-version-and-registry.results.dev-version)"
+          - name: prod_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.prod-image-tag-base)"
+          - name: dev_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
+        runAfter:
+          - openshift-redeploy-h100
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: benchmark-h100
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
+        continueOn:
+          errors: true
+        params:
+          - name: openshift_host
+            value: "https://api.fmaas-vllm-d.fmaas.res.ibm.com:6443"
+          - name: openshift_namespace
+            value: "hc4ai-operator-dev"
+        taskRef:
+          name: benchmark-task 
+        runAfter:
+          - go-test-post-deploy-h100
+
+      - name: pipeline-complete-dev-h100
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: notin
+            values: ["cluster-platform-eval"]
+        runAfter:
+          - benchmark-h100
+        taskRef:
+          name: noop-task
+
       - name: promote-to-prod
         when:
           - input: "$(params.runOptional)"
@@ -168,6 +279,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: promote-to-prod-task
         params:
@@ -182,7 +296,7 @@ spec:
         runAfter:
           - extract-version-and-registry
         workspaces:
-          - name: registry
+          - name: registry-secret
             workspace: registry-secret
 
       - name: buildah-build
@@ -193,6 +307,9 @@ spec:
           - input: "$(params.source_branch)"
             operator: in
             values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         params:
           - name: dev-version
             value: "$(tasks.extract-version-and-registry.results.dev-version)"
@@ -209,37 +326,42 @@ spec:
             workspace: source
           - name: registry
             workspace: registry-secret
-    
-      - name: sync-after-promote-or-build
-        runAfter:
-          - promote-to-prod
-          - buildah-build
-        taskRef:
-          name: noop-task
+          - name: container-storage
+            workspace: container-storage
 
-      # - name: update-submodule
-      #   when:
-      #     - input: "$(params.source_branch)"
-      #       operator: in
-      #       values: ["main"]
-      #   taskRef:
-      #     name: update-submodule-task
-      #   runAfter:
-      #     - promote-to-prod
-      #   workspaces:
-      #     - name: source
-      #       workspace: source
-      #     - name: git-auth
-      #       workspace: git-auth  
-
-      - name: tag-version
+      - name: vulnerability-scan
         when:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        runAfter:
+          - buildah-build
+        taskRef:
+          name: trivy-scan
+        params:
+          - name: IMAGE_URL
+            value: "$(tasks.buildah-build.results.image-url)"
+          - name: SEVERITY
+            value: "CRITICAL,HIGH,MEDIUM,LOW"
+          - name: ARGS
+            value: "--exit-code 0"
+        workspaces:
+          - name: registry-secret
+            workspace: registry-secret
+          - name: output
+            workspace: output
+
+      - name: tag-version-after-promotion
+        when:
           - input: "$(params.source_branch)"
             operator: in
-            values: ["main", "dev"]
+            values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: tag-version-task
         params:
@@ -250,21 +372,49 @@ spec:
           - name: dev-version
             value: "$(tasks.extract-version-and-registry.results.dev-version)"
         runAfter:
-          - sync-after-promote-or-build
+          - promote-to-prod
         workspaces:
           - name: source
             workspace: source
           - name: git-auth
             workspace: git-auth
 
-      - name: openshift-redeploy
+      - name: tag-version-after-scan
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        taskRef:
+          name: tag-version-task
+        params:
+          - name: source-branch
+            value: "$(params.source_branch)"
+          - name: prod-version
+            value: "$(tasks.extract-version-and-registry.results.prod-version)"
+          - name: dev-version
+            value: "$(tasks.extract-version-and-registry.results.dev-version)"
+        runAfter:
+          - vulnerability-scan
+        workspaces:
+          - name: source
+            workspace: source
+          - name: git-auth
+            workspace: git-auth
+
+      - name: openshift-redeploy-after-promotion
         when:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
           - input: "$(params.source_branch)"
             operator: in
-            values: ["dev", "main"]
+            values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: openshift-redeploy-task
         params:
@@ -279,19 +429,52 @@ spec:
           - name: dev_image_tag_base
             value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
         runAfter:
-          - tag-version
+          - tag-version-after-promotion
         workspaces:
           - name: source
             workspace: source
 
-      - name: go-test-post-deploy
+      - name: openshift-redeploy-after-scan
         when:
           - input: "$(params.runOptional)"
             operator: in
             values: ["true"]
           - input: "$(params.source_branch)"
             operator: in
-            values: ["dev", "main"]
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        taskRef:
+          name: openshift-redeploy-task
+        params:
+          - name: source-branch
+            value: "$(params.source_branch)"
+          - name: prod-version
+            value: "$(tasks.extract-version-and-registry.results.prod-version)"
+          - name: dev-version
+            value: "$(tasks.extract-version-and-registry.results.dev-version)"
+          - name: prod_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.prod-image-tag-base)"
+          - name: dev_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
+        runAfter:
+          - tag-version-after-scan
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: go-test-post-deploy-after-promotion
+        when:
+          - input: "$(params.runOptional)"
+            operator: in
+            values: ["true"]
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         taskRef:
           name: go-test-post-deploy-task
         params:
@@ -306,16 +489,89 @@ spec:
           - name: dev_image_tag_base
             value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
         runAfter:
-          - openshift-redeploy
+          - openshift-redeploy-after-promotion
         workspaces:
           - name: source
             workspace: source
-            
-      - name: increment-versions
+
+      - name: go-test-post-deploy-after-scan
+        when:
+          - input: "$(params.runOptional)"
+            operator: in
+            values: ["true"]
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        taskRef:
+          name: go-test-post-deploy-task
+        params:
+          - name: source-branch
+            value: "$(params.source_branch)"
+          - name: prod-version
+            value: "$(tasks.extract-version-and-registry.results.prod-version)"
+          - name: dev-version
+            value: "$(tasks.extract-version-and-registry.results.dev-version)"
+          - name: prod_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.prod-image-tag-base)"
+          - name: dev_image_tag_base
+            value: "$(tasks.extract-version-and-registry.results.dev-image-tag-base)"
+        runAfter:
+          - openshift-redeploy-after-scan
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: benchmark-after-promotion
         when:
           - input: "$(params.source_branch)"
             operator: in
             values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        continueOn:
+          errors: true
+        params:
+          - name: openshift_host
+            value: "https://api.fmaas-platform-eval.fmaas.res.ibm.com:6443"
+          - name: openshift_namespace
+            value: "hc4ai-operator-dev"
+        taskRef:
+          name: benchmark-task 
+        runAfter:
+          - go-test-post-deploy-after-promotion
+    
+      - name: benchmark-after-scan
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["dev"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
+        continueOn:
+          errors: true
+        params:
+          - name: openshift_host
+            value: "https://api.fmaas-platform-eval.fmaas.res.ibm.com:6443"
+          - name: openshift_namespace
+            value: "hc4ai-operator-dev"
+        taskRef:
+          name: benchmark-task 
+        runAfter:
+          - go-test-post-deploy-after-scan
+
+      - name: increment-versions-after-promotion
+        when:
+          - input: "$(params.source_branch)"
+            operator: in
+            values: ["main"]
+          - input: "$(tasks.read-cluster-name.results.cluster-name)"
+            operator: in
+            values: ["cluster-platform-eval"]
         params:
           - name: source-branch
             value: "$(params.source_branch)"
@@ -324,7 +580,7 @@ spec:
         taskRef:
           name: increment-versions-task
         runAfter:
-          - openshift-redeploy
+          - benchmark-after-promotion
         workspaces:
           - name: source
             workspace: source
@@ -337,7 +593,7 @@ spec:
             operator: in
             values: ["main"]
         runAfter:
-          - increment-versions
+          - increment-versions-after-promotion
         taskRef:
           name: noop-task
   
@@ -347,12 +603,23 @@ spec:
             operator: in
             values: ["dev"]
         runAfter:
-          - go-test-post-deploy
+          - benchmark-after-scan
         taskRef:
           name: noop-task
        
   workspaces:
+    - name: container-storage
+      persistentVolumeClaim:
+        claimName: buildah-cache1
     - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+    - name: output
       volumeClaimTemplate:
         spec:
           accessModes:
@@ -368,4 +635,4 @@ spec:
         secretName: "git-auth-secret-neuralmagic"
     - name: registry-secret
       secret:
-        secretName: quay-secret
+        secretName: quay-secret-llm-d

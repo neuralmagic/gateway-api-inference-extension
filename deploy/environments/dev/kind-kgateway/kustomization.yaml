@@ -1,0 +1,24 @@
+# ------------------------------------------------------------------------------
+# Kubernetes In Docker (KIND) Environment
+#
+# This will deploy the full development stack on a KIND cluster:
+#
+#  * KGateway Control Plane
+#  * VLLM Simulator
+#  * Inference Gateway
+#
+# This will expose the VLLM simulator via InferencePool and an HTTPRoute.
+# ------------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- services.yaml
+- ../../../components/kgateway-control-plane/
+- ../../../components/vllm-sim/
+- gateway-parameters.yaml
+- ../../../components/inference-gateway/
+
+patches:
+- path: patch-deployments.yaml
+- path: patch-gateways.yaml

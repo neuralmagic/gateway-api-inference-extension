@@ -65,9 +65,19 @@ type PodMetrics interface {
 	String() string
 }
 
+type PodRole int
+
+const (
+	Prefill PodRole = iota
+	Decode
+	Both
+	Unknown
+)
+
 type Pod struct {
 	NamespacedName types.NamespacedName
 	Address        string
+	Role           PodRole
 }
 
 func (p *Pod) String() string {
@@ -87,6 +97,7 @@ func (p *Pod) Clone() *Pod {
 			Namespace: p.NamespacedName.Namespace,
 		},
 		Address: p.Address,
+		Role:    p.Role,
 	}
 }
 

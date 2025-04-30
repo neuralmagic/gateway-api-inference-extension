@@ -31,9 +31,11 @@ type LLMRequest struct {
 	// Target models is a map of target model name to weight.
 	TargetModels map[string]int
 	Prompt       string
+	Headers      map[string]string
 	// Resolved target model is the final target model after traffic split.
 	ResolvedTargetModel string
 	Critical            bool
+	SessionID           string
 }
 
 func (r *LLMRequest) String() string {
@@ -47,16 +49,18 @@ type Pod interface {
 }
 
 type ScoredPod struct {
-	Pod   Pod
+	Pod
 	Score float64
 }
 
 // SchedulingContext holds contextual information during a scheduling operation.
 type SchedulingContext struct {
 	context.Context
-	Logger       logr.Logger
-	Req          *LLMRequest
-	PodsSnapshot []Pod
+	Logger         logr.Logger
+	Req            *LLMRequest
+	PodsSnapshot   []Pod
+	TargetPort     int32
+	MutatedHeaders map[string]string
 }
 
 func (pm *PodMetrics) String() string {
@@ -79,13 +83,15 @@ type PodMetrics struct {
 	*backendmetrics.Metrics
 }
 
-func NewSchedulingContext(ctx context.Context, req *LLMRequest, pods []Pod) *SchedulingContext {
+func NewSchedulingContext(ctx context.Context, req *LLMRequest, pods []Pod, targetPort int32) *SchedulingContext {
 	logger := log.FromContext(ctx).WithValues("request", req)
 	return &SchedulingContext{
-		Context:      ctx,
-		Logger:       logger,
-		Req:          req,
-		PodsSnapshot: pods,
+		Context:        ctx,
+		Logger:         logger,
+		Req:            req,
+		PodsSnapshot:   pods,
+		TargetPort:     targetPort,
+		MutatedHeaders: make(map[string]string),
 	}
 }
 
@@ -99,5 +105,6 @@ func ToSchedulerPodMetrics(pods []backendmetrics.PodMetrics) []Pod {
 
 // Result captures the scheduler result.
 type Result struct {
-	TargetPod Pod
+	TargetPod      Pod
+	MutatedHeaders map[string]string
 }

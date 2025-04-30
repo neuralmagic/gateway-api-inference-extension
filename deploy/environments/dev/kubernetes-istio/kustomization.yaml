@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ${NAMESPACE}
+
+resources:
+- ../../../components/vllm-sim/
+- ../../../components/inference-gateway/
+- destinationrules.yaml
+
+images:
+- name: quay.io/llm-d/vllm-sim
+  newName: ${VLLM_SIM_IMAGE}
+  newTag: ${VLLM_SIM_TAG}
+- name: quay.io/llm-d/llm-d-gateway-api-inference-extension
+  newName: ${EPP_IMAGE}
+  newTag: ${EPP_TAG}
+
+patches:
+- path: patch-deployments.yaml
+- path: patch-gateways.yaml
