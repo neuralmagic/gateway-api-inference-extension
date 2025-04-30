@@ -12,5 +12,5 @@ resources:
 - deployments.yaml
 
 images:
-- name: quay.io/vllm-d/vllm-sim
+- name: quay.io/llm-d/vllm-sim
   newTag: 0.0.2

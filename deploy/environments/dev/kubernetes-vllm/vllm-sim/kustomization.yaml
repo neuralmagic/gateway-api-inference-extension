@@ -5,7 +5,7 @@ resources:
 - ../../../../components/vllm-sim/
 
 images:
-- name: quay.io/vllm-d/vllm-sim
+- name: quay.io/llm-d/vllm-sim
   newTag: ${VLLM_SIM_TAG}
 
 patches:

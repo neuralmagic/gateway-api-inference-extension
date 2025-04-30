@@ -15,7 +15,7 @@ set -eo pipefail
 : "${CLUSTER_NAME:=gie-dev}"
 
 # Set the default IMAGE_REGISTRY if not provided
-: "${IMAGE_REGISTRY:=quay.io/vllm-d}"
+: "${IMAGE_REGISTRY:=quay.io/llm-d}"
 
 # Set a default VLLM_SIMULATOR_IMAGE if not provided
 : "${VLLM_SIMULATOR_IMAGE:=vllm-sim}"

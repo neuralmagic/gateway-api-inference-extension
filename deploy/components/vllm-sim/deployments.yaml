@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: vllm
-        image: quay.io/vllm-d/vllm-sim:latest
+        image: quay.io/llm-d/vllm-sim:latest
         imagePullPolicy: IfNotPresent
         args:
         - "--port=8000"

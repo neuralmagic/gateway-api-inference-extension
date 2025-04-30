@@ -312,7 +312,7 @@ DEV_VERSION=$EPP_TAG make image-build
 Tag the image for your private registry and push it:
 
 ```bash
-$CONTAINER_RUNTIME tag quay.io/vllm-d/gateway-api-inference-extension/epp:$TAG \
+$CONTAINER_RUNTIME tag quay.io/llm-d/gateway-api-inference-extension/epp:$TAG \
     <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 $CONTAINER_RUNTIME push <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 ```

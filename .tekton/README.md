@@ -20,9 +20,9 @@ Each repo includes a `.version.json` file at its root. This file controls:
 ```json
 {
   "dev-version": "0.0.5",
-  "dev-registry": "quay.io/vllm-d/<your project name>-dev",
+  "dev-registry": "quay.io/llm-d/<your project name>-dev",
   "prod-version": "0.0.4",
-  "prod-registry": "quay.io/vllm-d/<your project name>"
+  "prod-registry": "quay.io/llm-d/<your project name>"
 }
 ```
 
@@ -43,8 +43,8 @@ The pipeline reads this file to:
 
 This pipeline maintains two container repositories for this GitHub repository, as follows.
 
-- `quay.io/vllm-d/<repoName>-dev`. Hold builds from the `dev` branch as described below.
-- `quay.io/vllm-d/<repoName>`. Holds promotions to prod, as described below.
+- `quay.io/llm-d/<repoName>-dev`. Hold builds from the `dev` branch as described below.
+- `quay.io/llm-d/<repoName>`. Holds promotions to prod, as described below.
 
 ---
 
