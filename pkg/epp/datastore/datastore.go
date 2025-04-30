@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -320,11 +319,6 @@ func (ds *datastore) podResyncAll(ctx context.Context, ctrlClient client.Client)
 	ds.pods.Range(deleteFn)
 
 	return nil
-}
-
-type sessionInfo struct {
-	pod *backendmetrics.Pod
-	lru time.Time
 }
 
 func selectorFromInferencePoolSelector(selector map[v1alpha2.LabelKey]v1alpha2.LabelValue) labels.Selector {
