@@ -19,7 +19,7 @@ linters:
     - fatcontext
     - ginkgolinter
     - gocritic
-    # - govet        
+    # - govet        # do not enable - this causes some metalinter issue
     - loggercheck
     - misspell
     - perfsprint
