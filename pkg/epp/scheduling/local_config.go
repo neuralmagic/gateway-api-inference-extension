@@ -90,4 +90,5 @@ func setPDFilter() {
 	}
 
 	defaultConfig.filters = append(defaultConfig.filters, filter.PDFilter)
+	loggerDebug.Info("Initialized PDFilter")
 }

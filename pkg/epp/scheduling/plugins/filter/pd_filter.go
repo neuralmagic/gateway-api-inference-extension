@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"math/rand/v2"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
+	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
 const (
@@ -42,6 +44,8 @@ var PDFilter = &baseFilter{
 // Returns:
 //   - Filtered slice of pod metrics, could contain one or zerro elements
 func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
+	logger := log.FromContext(ctx).WithName("p/d filter").V(logutil.DEBUG)
+
 	pPods := make([]types.Pod, 0)
 	dPods := make([]types.Pod, 0)
 
@@ -56,7 +60,10 @@ func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []t
 	if len(pPods) > 0 {
 		// select a random prefill pod
 		randomIndex := rand.IntN(len(pPods))
-		ctx.MutatedHeaders[prefillPodHeader] = fmt.Sprintf("http://%s:%d", pPods[randomIndex].GetPod().Address, ctx.TargetPort)
+		url := fmt.Sprintf("http://%s:%d", pPods[randomIndex].GetPod().Address, ctx.TargetPort)
+		logger.Info("prefill pod selected", "url", url)
+
+		ctx.MutatedHeaders[prefillPodHeader] = url
 	}
 
 	if len(dPods) > 1 {

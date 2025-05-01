@@ -494,6 +494,7 @@ image-build: check-container-tool load-version-json ## Build container image usi
 		--build-arg TARGETARCH=$(TARGETARCH) \
 		--build-arg GIT_NM_USER=$(GIT_NM_USER)\
         --build-arg NM_TOKEN=$(NM_TOKEN) \
+		--progress=plain \
  		-t $(IMG) .
 
 .PHONY: image-push
