@@ -165,6 +165,9 @@ spec:
         workspaces:
           - name: source
             workspace: source
+          - name: git-auth
+            workspace: git-auth
+
 
       - name: extract-version-and-registry
         params:

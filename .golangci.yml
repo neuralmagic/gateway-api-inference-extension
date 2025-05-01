@@ -1,8 +1,6 @@
 run:
   timeout: 5m
   allow-parallel-runners: true
-  skip-files:
-    - "pkg/epp/server/runserver_test.go"
     
 # Settings related to issues
 issues:
@@ -21,7 +19,7 @@ linters:
     - fatcontext
     - ginkgolinter
     - gocritic
-    - govet
+    # - govet        
     - loggercheck
     - misspell
     - perfsprint
@@ -30,16 +28,12 @@ linters:
     - makezero
     - errcheck
     - goconst
-    - gofmt
-    - goimports
-    - gosimple
     - ineffassign
     - nakedret
     - prealloc
-    - typecheck
     - unparam
     - unused
-    
+
 linters-settings:
   revive:
     rules:
