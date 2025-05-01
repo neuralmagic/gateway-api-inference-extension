@@ -22,6 +22,11 @@ To enable LoadAwareScorer, the following env vars must be configured:
 export ENABLE_LOAD_AWARE_SCORER=true
 export LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
+
+To enable PDFilter, the following env var must be configured:
+```
+export ENABLE_PD_FILTER=true
+```
 ---
 [Inference Gateways]:#concepts-and-definitions
 
@@ -96,8 +101,8 @@ See our website at https://gateway-api-inference-extension.sigs.k8s.io/ for deta
 ## Roadmap
 
 As Inference Gateway builds towards a GA release. We will continue to expand our capabilities, namely:
-1. Prefix-cache aware load balancing with interfaces for remote caches 
-1. Recommended LoRA adapter pipeline for automated rollout 
+1. Prefix-cache aware load balancing with interfaces for remote caches
+1. Recommended LoRA adapter pipeline for automated rollout
 1. Fairness and priority between workloads within the same criticality band
 1. HPA support for autoscaling on aggregate metrics derived from the load balancer
 1. Support for large multi-modal inputs and outputs
@@ -121,4 +126,3 @@ Contributions are readily welcomed, follow the [dev guide](./docs/dev.md) to sta
 ### Code of conduct
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
-
