@@ -18,7 +18,9 @@ package scheduling
 
 import (
 	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/filter"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/picker"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorer"
 	envutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/env"
@@ -28,6 +30,7 @@ import (
 const (
 	kvCacheScorerEnablementEnvVar   = "ENABLE_KVCACHE_AWARE_SCORER"
 	loadAwareScorerEnablementEnvVar = "ENABLE_LOAD_AWARE_SCORER"
+	pdFilterEnablementEnvVar        = "ENABLE_PD_FILTER"
 
 	kvCacheScorerWeightEnvVar   = "KVCACHE_AWARE_SCORER_WEIGHT"
 	loadAwareScorerWeightEnvVar = "LOAD_AWARE_SCORER_WEIGHT"
@@ -38,6 +41,7 @@ func setDefaultConfig() {
 	// this configuration is a temporary state, it should be better streamlined.
 	setLoadAwareScorer()
 	setKVCacheAwareScorer()
+	setPDFilter()
 
 	defaultConfig.picker = picker.NewMaxScorePicker()
 }
@@ -74,4 +78,16 @@ func setKVCacheAwareScorer() {
 	kvCacheScorerWeight := envutil.GetEnvInt(kvCacheScorerWeightEnvVar, 1, loggerDebug)
 	defaultConfig.scorers[kvCacheScorer] = kvCacheScorerWeight
 	loggerDebug.Info("Initialized KVCacheAwareScorer", "weight", kvCacheScorerWeight)
+}
+
+func setPDFilter() {
+	ctx := context.Background()
+	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
+
+	if envutil.GetEnvString(pdFilterEnablementEnvVar, "false", loggerDebug) != "true" {
+		loggerDebug.Info("Skipping PDFilter creation as it is not enabled")
+		return
+	}
+
+	defaultConfig.filters = append(defaultConfig.filters, filter.PDFilter)
 }
