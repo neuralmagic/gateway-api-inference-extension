@@ -440,6 +440,7 @@ lint: check-golangci-lint ## Run lint
 
 ##@ Build
 LDFLAGS ?= -extldflags '-L$(shell pwd)/lib'
+CGO_ENABLED=1 # Enable CGO
 
 .PHONY: download-tokenizer
 download-tokenizer: ## Download the HuggingFace tokenizer bindings.
