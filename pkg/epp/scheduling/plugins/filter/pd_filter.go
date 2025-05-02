@@ -44,7 +44,7 @@ var PDFilter = &baseFilter{
 // Returns:
 //   - Filtered slice of pod metrics, could contain one or zerro elements
 func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
-	logger := log.FromContext(ctx).WithName("p/d filter").V(logutil.DEBUG)
+	loggerDebug := log.FromContext(ctx).WithName("pd_filter").V(logutil.DEBUG)
 
 	pPods := make([]types.Pod, 0)
 	dPods := make([]types.Pod, 0)
@@ -61,7 +61,7 @@ func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []t
 		// select a random prefill pod
 		randomIndex := rand.IntN(len(pPods))
 		url := fmt.Sprintf("http://%s:%d", pPods[randomIndex].GetPod().Address, ctx.TargetPort)
-		logger.Info("prefill pod selected", "url", url)
+		loggerDebug.Info("Prefill pod selected", "url", url)
 
 		ctx.MutatedHeaders[prefillPodHeader] = url
 	}
