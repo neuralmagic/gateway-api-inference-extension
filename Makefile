@@ -439,11 +439,20 @@ lint: check-golangci-lint ## Run lint
 	golangci-lint run
 
 ##@ Build
+LDFLAGS ?= -extldflags '-L$(shell pwd)/lib'
+CGO_ENABLED=1 # Enable CGO
+
+.PHONY: download-tokenizer
+download-tokenizer: ## Download the HuggingFace tokenizer bindings.
+	@echo "Downloading HuggingFace tokenizer bindings..."
+	mkdir -p lib
+	curl -L https://github.com/daulet/tokenizers/releases/download/v1.20.2/libtokenizers.$(TARGETOS)-$(TARGETARCH).tar.gz | tar -xz -C lib
+	ranlib lib/*.a
 
 .PHONY: build
-build: check-go ##
+build: check-go download-tokenizer ##
 	@printf "\033[33;1m==== Building ====\033[0m\n"
-	go build -o bin/epp cmd/epp/main.go cmd/epp/health.go
+	go build -ldflags="$(LDFLAGS)" -o bin/epp cmd/epp/main.go cmd/epp/health.go
 
 ##@ Container Build/Push
 
