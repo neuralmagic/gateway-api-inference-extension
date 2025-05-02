@@ -483,7 +483,11 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  sed -e '1 s/\(^FROM\)/FROM --platform=$${BUILDPLATFORM}/' Dockerfile > Dockerfile.cross; \
 	  - docker buildx create --use --name image-builder || true; \
 	  docker buildx use image-builder; \
-	  docker buildx build --push --platform=$(PLATFORMS) --tag $(IMG) -f Dockerfile.cross . || exit 1; \
+	  docker buildx build --push \
+	  			--platform=$(PLATFORMS) \
+	  			--build-arg GIT_NM_USER=$(GIT_NM_USER)\
+                --build-arg NM_TOKEN=$(NM_TOKEN) \
+                --tag $(IMG) -f Dockerfile.cross . || exit 1; \
 	  docker buildx rm image-builder || true; \
 	  rm Dockerfile.cross; \
 	elif [ "$(BUILDER)" = "podman" ]; then \
