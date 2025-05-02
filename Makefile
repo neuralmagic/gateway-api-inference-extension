@@ -439,11 +439,20 @@ lint: check-golangci-lint ## Run lint
 	golangci-lint run
 
 ##@ Build
+LDFLAGS ?= -extldflags '-L$(shell pwd)/lib'
+CGO_ENABLED=1 # Enable CGO
+
+.PHONY: download-tokenizer
+download-tokenizer: ## Download the HuggingFace tokenizer bindings.
+	@echo "Downloading HuggingFace tokenizer bindings..."
+	mkdir -p lib
+	curl -L https://github.com/daulet/tokenizers/releases/download/v1.20.2/libtokenizers.$(TARGETOS)-$(TARGETARCH).tar.gz | tar -xz -C lib
+	ranlib lib/*.a
 
 .PHONY: build
-build: check-go ##
+build: check-go download-tokenizer ##
 	@printf "\033[33;1m==== Building ====\033[0m\n"
-	go build -o bin/epp cmd/epp/main.go cmd/epp/health.go
+	go build -ldflags="$(LDFLAGS)" -o bin/epp cmd/epp/main.go cmd/epp/health.go
 
 ##@ Container Build/Push
 
@@ -456,7 +465,12 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  for arch in amd64; do \
 	    ARCH_TAG=$$FINAL_TAG-$$arch; \
 	    echo "📦 Building for architecture: $$arch"; \
-		buildah build --arch=$$arch --os=linux --layers -t $(IMG)-$$arch . || exit 1; \
+		buildah build \
+			--arch=$$arch \
+			--build-arg GIT_NM_USER=$(GIT_NM_USER) \
+            --build-arg NM_TOKEN=$(NM_TOKEN) \
+			--os=linux \
+			--layers -t $(IMG)-$$arch . || exit 1; \
 	    echo "🚀 Pushing image: $(IMG)-$$arch"; \
 	    buildah push $(IMG)-$$arch docker://$(IMG)-$$arch || exit 1; \
 	  done; \
@@ -474,7 +488,11 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  sed -e '1 s/\(^FROM\)/FROM --platform=$${BUILDPLATFORM}/' Dockerfile > Dockerfile.cross; \
 	  - docker buildx create --use --name image-builder || true; \
 	  docker buildx use image-builder; \
-	  docker buildx build --push --platform=$(PLATFORMS) --tag $(IMG) -f Dockerfile.cross . || exit 1; \
+	  docker buildx build --push \
+	  			--platform=$(PLATFORMS) \
+	  			--build-arg GIT_NM_USER=$(GIT_NM_USER)\
+                --build-arg NM_TOKEN=$(NM_TOKEN) \
+                --tag $(IMG) -f Dockerfile.cross . || exit 1; \
 	  docker buildx rm image-builder || true; \
 	  rm Dockerfile.cross; \
 	elif [ "$(BUILDER)" = "podman" ]; then \

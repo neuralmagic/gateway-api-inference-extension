@@ -44,6 +44,15 @@ spec:
         USERNAME=$(jq -r '.auths["quay.io"].username' /root/.docker/config.json)
         PASSWORD=$(jq -r '.auths["quay.io"].password' /root/.docker/config.json)
 
+        echo "🔐 Extracting Git credentials from workspace..."
+        GIT_USER=$(cat /workspace/git-auth/username)
+        GIT_TOKEN=$(cat /workspace/git-auth/token)
+
+        if [ -z "$GIT_USER" ] || [ -z "$GIT_TOKEN" ]; then
+          echo "❌ Error: Missing git-auth credentials"
+          exit 1
+        fi
+        
         if [ "$USERNAME" = "null" ] || [ "$PASSWORD" = "null" ]; then
           echo "❌ Error: Missing registry credentials"
           exit 1
@@ -56,8 +65,10 @@ spec:
         export DOCKER_CONFIG=/root/.docker
         export BUILDER=buildah
         export IMG=$(params.image_tag_base):$(params.dev-version)
-
+        export GIT_NM_USER=$GIT_USER 
+        export NM_TOKEN=$GIT_TOKEN
+        
         echo "🚀 Calling make buildah-build with IMG=$IMG..."
-        make buildah-build IMG=$IMG
+        make buildah-build IMG=$IMG 
 
         echo "$IMG" > /tekton/results/image-url

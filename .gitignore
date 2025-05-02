@@ -31,4 +31,8 @@ go.work.sum
 # generated docs
 site
 
+# tokenizer lib
+lib
+
+# local configuration files
 .envrc

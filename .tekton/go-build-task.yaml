@@ -28,5 +28,8 @@ spec:
         git config --global url."https://${GIT_USER}:${GIT_TOKEN}@github.com".insteadOf "https://github.com"
         git config --global --add safe.directory "$(pwd)"
 
+        # required for go build with tokenizer lib linking
+        dnf install -y gcc-c++ libstdc++ libstdc++-devel && dnf clean all
+        
         go env -w GOFLAGS=-buildvcs=false
         make build
