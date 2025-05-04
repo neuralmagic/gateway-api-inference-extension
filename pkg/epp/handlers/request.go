@@ -159,7 +159,7 @@ func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *Requ
 	}
 
 	for _, header := range req.RequestHeaders.Headers.Headers {
-		reqCtx.RequestHeaders[header.Key] = header.Value
+		reqCtx.RequestHeaders[header.Key] = string(header.RawValue)
 	}
 
 	return nil
