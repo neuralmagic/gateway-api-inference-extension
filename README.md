@@ -23,6 +23,12 @@ export ENABLE_LOAD_AWARE_SCORER=true
 export LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
 
+To enable SessionAwareScorer, the following env vars must be configured:
+```
+export ENABLE_SESSION_AWARE_SCORER=true
+export SESSION_AWARE_SCORER_WEIGHT=1.0
+```
+
 To enable PDFilter, the following env var must be configured:
 ```
 export ENABLE_PD_FILTER=true

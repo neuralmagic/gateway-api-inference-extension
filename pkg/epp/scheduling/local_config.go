@@ -28,12 +28,14 @@ import (
 )
 
 const (
-	kvCacheScorerEnablementEnvVar   = "ENABLE_KVCACHE_AWARE_SCORER"
-	loadAwareScorerEnablementEnvVar = "ENABLE_LOAD_AWARE_SCORER"
-	pdFilterEnablementEnvVar        = "ENABLE_PD_FILTER"
+	kvCacheScorerEnablementEnvVar      = "ENABLE_KVCACHE_AWARE_SCORER"
+	loadAwareScorerEnablementEnvVar    = "ENABLE_LOAD_AWARE_SCORER"
+	sessionAwareScorerEnablementEnvVar = "ENABLE_SESSION_AWARE_SCORER"
+	pdFilterEnablementEnvVar           = "ENABLE_PD_FILTER"
 
-	kvCacheScorerWeightEnvVar   = "KVCACHE_AWARE_SCORER_WEIGHT"
-	loadAwareScorerWeightEnvVar = "LOAD_AWARE_SCORER_WEIGHT"
+	kvCacheScorerWeightEnvVar      = "KVCACHE_AWARE_SCORER_WEIGHT"
+	loadAwareScorerWeightEnvVar    = "LOAD_AWARE_SCORER_WEIGHT"
+	sessionAwareScorerWeightEnvVar = "SESSION_AWARE_SCORER_WEIGHT"
 )
 
 func init() {
@@ -44,6 +46,7 @@ func setDefaultConfig() {
 	// since the default config is a global variable, we add this function to minimize rebase conflicts.
 	// this configuration is a temporary state, it should be better streamlined.
 	setLoadAwareScorer()
+	setSessionAwareScorer()
 	setKVCacheAwareScorer()
 	setPDFilter()
 
@@ -62,6 +65,23 @@ func setLoadAwareScorer() {
 	loadBasedScorerWeight := envutil.GetEnvInt(loadAwareScorerWeightEnvVar, 1, loggerDebug)
 	defaultConfig.scorers[&scorer.LoadAwareScorer{}] = loadBasedScorerWeight
 	loggerDebug.Info("Initialized LoadAwareScorer", "weight", loadBasedScorerWeight)
+}
+
+func setSessionAwareScorer() {
+	ctx := context.Background()
+	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
+
+	if envutil.GetEnvString(sessionAwareScorerEnablementEnvVar, "false", loggerDebug) != "true" {
+		loggerDebug.Info("Skipping SessionAwareScorer creation as it is not enabled")
+		return
+	}
+
+	sessionBasedScorerWeight := envutil.GetEnvInt(sessionAwareScorerWeightEnvVar, 1, loggerDebug)
+	sessionScorerWithPostResponse := scorer.NewSessionAffinityScorer()
+
+	defaultConfig.scorers[sessionScorerWithPostResponse.Scorer] = sessionBasedScorerWeight
+	defaultConfig.postResponsePlugins = append(defaultConfig.postResponsePlugins, sessionScorerWithPostResponse.PostResponse)
+	loggerDebug.Info("Initialized SessionAwareScorer", "weight", sessionBasedScorerWeight)
 }
 
 func setKVCacheAwareScorer() {
