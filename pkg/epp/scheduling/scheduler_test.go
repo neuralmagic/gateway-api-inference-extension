@@ -232,7 +232,7 @@ func TestSchedule(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scheduler := NewScheduler(&fakeDataStore{pods: test.input})
-			got, err := scheduler.Schedule(context.Background(), test.req)
+			got, err := scheduler.OnRequest(context.Background(), test.req)
 			if test.err != (err != nil) {
 				t.Errorf("Unexpected error, got %v, want %v", err, test.err)
 			}
@@ -407,7 +407,7 @@ func TestSchedulePlugins(t *testing.T) {
 				Model:   "test-model",
 				Headers: test.requestHeaders,
 			}
-			got, err := scheduler.Schedule(context.Background(), req)
+			got, err := scheduler.OnRequest(context.Background(), req)
 
 			// Validate error state
 			if test.err != (err != nil) {

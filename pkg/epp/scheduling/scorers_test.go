@@ -112,7 +112,7 @@ func TestScorers(t *testing.T) {
 			scheduler := NewScheduler(&fakeDataStore{pods: test.input})
 			scheduler.scorers = map[plugins.Scorer]int{test.scorer: 1}
 			scheduler.picker = &picker.MaxScorePicker{}
-			got, err := scheduler.Schedule(context.Background(), test.req)
+			got, err := scheduler.OnRequest(context.Background(), test.req)
 			if test.err != (err != nil) {
 				t.Errorf("Unexpected error, got %v, want %v", err, test.err)
 			}

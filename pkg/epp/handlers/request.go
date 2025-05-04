@@ -90,7 +90,7 @@ func (s *StreamingServer) HandleRequestBody(
 		return reqCtx, errutil.Error{Code: errutil.Internal, Msg: fmt.Sprintf("error marshaling request body: %v", err)}
 	}
 
-	res, err := s.scheduler.Schedule(ctx, llmReq)
+	res, err := s.scheduler.OnRequest(ctx, llmReq)
 	if err != nil {
 		return reqCtx, errutil.Error{Code: errutil.InferencePoolResourceExhausted, Msg: fmt.Errorf("failed to find target pod: %w", err).Error()}
 	}

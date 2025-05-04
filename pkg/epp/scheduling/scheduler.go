@@ -99,8 +99,10 @@ type Datastore interface {
 	PodGetAll() []backendmetrics.PodMetrics
 }
 
-// Schedule finds the target pod based on metrics and the requested lora adapter.
-func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
+// OnRequest finds the target pod based on metrics and the requested lora adapter.
+// OnRequest is invoked during the processing of the request, before it is sent to
+// appropriate pod for inference
+func (s *Scheduler) OnRequest(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
 	logger := log.FromContext(ctx).WithValues("request", req)
 	loggerDebug := logger.V(logutil.DEBUG)
 
