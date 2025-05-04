@@ -69,7 +69,6 @@ var (
 )
 
 func NewScheduler(datastore Datastore) *Scheduler {
-	setDefaultConfig()
 	return NewSchedulerWithConfig(datastore, defaultConfig)
 }
 
@@ -81,6 +80,7 @@ func NewSchedulerWithConfig(datastore Datastore, config *SchedulerConfig) *Sched
 		scorers:             config.scorers,
 		picker:              config.picker,
 		postSchedulePlugins: config.postSchedulePlugins,
+		postResponsePlugins: config.postResponsePlugins,
 	}
 }
 
@@ -91,6 +91,7 @@ type Scheduler struct {
 	scorers             map[plugins.Scorer]int // map from scorer to its weight
 	picker              plugins.Picker
 	postSchedulePlugins []plugins.PostSchedule
+	postResponsePlugins []plugins.PostResponse
 }
 
 type Datastore interface {
@@ -209,6 +210,38 @@ func (s *Scheduler) runPostSchedulePlugins(ctx *types.SchedulingContext, res *ty
 		plugin.PostSchedule(ctx, res)
 		metrics.RecordSchedulerPluginProcessingLatency(plugins.PostSchedulePluginType, plugin.Name(), time.Since(before))
 	}
+}
+
+func (s *Scheduler) RunPostResponsePlugins(ctx context.Context, req *types.LLMRequest, targetPodName string) (*types.Result, error) {
+	logger := log.FromContext(ctx)
+
+	pool, err := s.datastore.PoolGet()
+	if err != nil {
+		return nil, errutil.Error{Code: errutil.Internal, Msg: "failed to find a target pod"} // pool not defined, no pods
+	}
+
+	// Snapshot pod metrics from the datastore to:
+	// 1. Reduce concurrent access to the datastore.
+	// 2. Ensure consistent data during the scheduling operation of a request.
+	pods := types.ToSchedulerPodMetrics(s.datastore.PodGetAll())
+	var targetPod types.Pod
+	for _, pod := range pods {
+		if pod.GetPod().NamespacedName.String() == targetPodName {
+			targetPod = pod
+			break
+		}
+	}
+
+	sCtx := types.NewSchedulingContext(ctx, req, pods, pool.Spec.TargetPortNumber)
+
+	for _, plugin := range s.postResponsePlugins {
+		logger.V(logutil.DEBUG).Info("Running post-response plugin", "plugin", plugin.Name())
+		before := time.Now()
+		plugin.PostResponse(sCtx, targetPod)
+		metrics.RecordSchedulerPluginProcessingLatency(plugins.PostResponsePluginType, plugin.Name(), time.Since(before))
+	}
+
+	return &types.Result{TargetPod: nil, MutatedHeaders: sCtx.MutatedHeaders}, nil
 }
 
 type defaultPlugin struct {

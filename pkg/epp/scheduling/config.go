@@ -26,6 +26,7 @@ type SchedulerConfig struct {
 	scorers             map[plugins.Scorer]int // map from scorer to weight
 	picker              plugins.Picker
 	postSchedulePlugins []plugins.PostSchedule
+	postResponsePlugins []plugins.PostResponse
 }
 
 var defPlugin = &defaultPlugin{}
@@ -40,4 +41,5 @@ var defaultConfig = &SchedulerConfig{
 	scorers:             map[plugins.Scorer]int{},
 	picker:              defPlugin,
 	postSchedulePlugins: []plugins.PostSchedule{},
+	postResponsePlugins: []plugins.PostResponse{},
 }
