@@ -82,3 +82,7 @@ func (s *PDScheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*typ
 	// get decode pod
 	return s.decodeScheduler.scheduleWithContext(ctx, sCtx, req, logger)
 }
+
+func (s *PDScheduler) RunPostResponsePlugins(ctx context.Context, req *types.LLMRequest, targetPodName string) (*types.Result, error) {
+	return s.decodeScheduler.RunPostResponsePlugins(ctx, req, targetPodName)
+}
