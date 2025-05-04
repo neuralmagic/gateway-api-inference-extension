@@ -81,6 +81,7 @@ func NewSchedulerWithConfig(datastore Datastore, config *SchedulerConfig) *Sched
 		scorers:             config.scorers,
 		picker:              config.picker,
 		postSchedulePlugins: config.postSchedulePlugins,
+		postResponsePlugins: config.postResponsePlugins,
 	}
 }
 
@@ -91,6 +92,7 @@ type Scheduler struct {
 	scorers             map[plugins.Scorer]int // map from scorer to its weight
 	picker              plugins.Picker
 	postSchedulePlugins []plugins.PostSchedule
+	postResponsePlugins []plugins.PostResponse
 }
 
 type Datastore interface {
