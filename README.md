@@ -23,9 +23,42 @@ export ENABLE_LOAD_AWARE_SCORER=true
 export LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
 
-To enable PDFilter, the following env var must be configured:
+To enable PD Scheduler, the following env var must be configured:
 ```
-export ENABLE_PD_FILTER=true
+export PD_ENABLED=true
+```
+
+To define prompt length threshold (requests with length is longer than the value defined here will be processed using prefill-decode process), the following env var must be configured:
+```
+export PD_PROMPT_LEN_THRESHOLD=10
+```
+
+Prefill scheduler configuration:
+
+To enable and configure kv cache scorer, the following env vars must be configured:
+```
+export PREFILL_ENABLE_KVCACHE_AWARE_SCORER=true
+export PREFILL_KVCACHE_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure load aware scorer, the following env vars must be configured:
+```
+export PREFILL_ENABLE_LOAD_AWARE_SCORER=true
+export PREFILL_LOAD_AWARE_SCORER_WEIGHT=1.0
+```
+
+Decode scheduler configuration:
+
+To enable and configure kv cache scorer, the following env vars must be configured:
+```
+export DECODE_ENABLE_KVCACHE_AWARE_SCORER=true
+export DECODE_KVCACHE_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure load aware scorer, the following env vars must be configured:
+```
+export DECODE_ENABLE_LOAD_AWARE_SCORER=true
+export DECODE_LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
 ---
 [Inference Gateways]:#concepts-and-definitions
