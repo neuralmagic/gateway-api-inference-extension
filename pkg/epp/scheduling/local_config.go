@@ -36,6 +36,10 @@ const (
 	loadAwareScorerWeightEnvVar = "LOAD_AWARE_SCORER_WEIGHT"
 )
 
+func init() {
+	setDefaultConfig()
+}
+
 func setDefaultConfig() {
 	// since the default config is a global variable, we add this function to minimize rebase conflicts.
 	// this configuration is a temporary state, it should be better streamlined.

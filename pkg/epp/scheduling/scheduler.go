@@ -69,7 +69,6 @@ var (
 )
 
 func NewScheduler(datastore Datastore) *Scheduler {
-	setDefaultConfig()
 	return NewSchedulerWithConfig(datastore, defaultConfig)
 }
 
