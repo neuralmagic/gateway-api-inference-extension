@@ -31,7 +31,6 @@ type LLMRequest struct {
 	Prompt string
 	// Target models is a map of target model name to weight.
 	TargetModels map[string]int
-	Prompt       string
 	Headers      map[string]string
 	// Resolved target model is the final target model after traffic split.
 	ResolvedTargetModel string

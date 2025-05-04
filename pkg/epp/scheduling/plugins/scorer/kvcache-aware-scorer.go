@@ -97,7 +97,20 @@ func (s *KVCacheAwareScorer) Score(ctx *types.SchedulingContext, pods []types.Po
 	}
 	loggerDebug.Info("Got pod scores", "scores", scores)
 
-	return indexerScoresToNormalizedScoredPods(pods, scores)
+	if len(scores) == 0 {
+		loggerDebug.Info("No scores found for pods")
+		return nil
+	}
+
+	podToKey := func(pod types.Pod) (string, bool) {
+		metricsPod := pod.GetPod()
+		if metricsPod == nil {
+			return "", false
+		}
+		return metricsPod.Address, true
+	}
+
+	return indexedScoresToNormalizedScoredPods(pods, podToKey, scores)
 }
 
 func getMinMax(scores map[string]int) (int, int) {
@@ -116,17 +129,21 @@ func getMinMax(scores map[string]int) (int, int) {
 	return minScore, maxScore
 }
 
-func indexerScoresToNormalizedScoredPods(pods []types.Pod, scores map[string]int) map[types.Pod]float64 {
+// podToKey is a function type that converts a Pod to a string key.
+// It returns the key and a boolean indicating success.
+type podToKeyFunc func(pod types.Pod) (string, bool)
+
+func indexedScoresToNormalizedScoredPods(pods []types.Pod, podToKey podToKeyFunc, scores map[string]int) map[types.Pod]float64 {
 	scoredPods := make(map[types.Pod]float64)
 	minScore, maxScore := getMinMax(scores)
 
 	for _, pod := range pods {
-		metricsPod := pod.GetPod()
-		if metricsPod == nil {
+		key, ok := podToKey(pod)
+		if !ok {
 			continue
 		}
 
-		if score, ok := scores[metricsPod.Address]; ok {
+		if score, ok := scores[key]; ok {
 			if minScore == maxScore {
 				scoredPods[pod] = 1.0
 				continue

@@ -14,31 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheduling
+package scorer_test
 
 import (
 	"context"
-	"testing"
-	"time"
-
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
+	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorer"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
+	"testing"
 )
 
 func TestPrefixAwareScorer(t *testing.T) {
 	ctx := context.Background()
 	logger := log.FromContext(ctx)
 	ctx = log.IntoContext(ctx, logger)
-
-	// Create a prefix store with test configuration
-	prefixStore := NewPrefixStore(PrefixStoreConfig{
-		MaxEntries:   100,
-		MinPrefixLen: 3,
-		MaxPrefixLen: 10,
-		EntryTTL:     1 * time.Hour,
-	})
 
 	// Create test pods
 	pod1 := &types.PodMetrics{
@@ -68,7 +59,7 @@ func TestPrefixAwareScorer(t *testing.T) {
 		prefixToAdd    string
 		podToAdd       k8stypes.NamespacedName
 		prefixModel    string // Model name to use when adding the prefix
-		expectedScores []float64
+		expectedScores map[types.Pod]float64
 	}{
 		{
 			name:           "no prompt",
@@ -78,17 +69,20 @@ func TestPrefixAwareScorer(t *testing.T) {
 			prefixToAdd:    "hello",
 			podToAdd:       pod1.Pod.NamespacedName,
 			prefixModel:    "model1",
-			expectedScores: []float64{0, 0}, // No prompt means zero scores
+			expectedScores: map[types.Pod]float64{}, // No prompt means zero scores
 		},
 		{
-			name:           "exact prefix match",
-			weight:         1.0,
-			prompt:         "hello world",
-			modelName:      "model1",
-			prefixToAdd:    "hello",
-			podToAdd:       pod1.Pod.NamespacedName,
-			prefixModel:    "model1",
-			expectedScores: []float64{1.0, 0}, // pod1 matches, pod2 doesn't
+			name:        "exact prefix match",
+			weight:      1.0,
+			prompt:      "hello world",
+			modelName:   "model1",
+			prefixToAdd: "hello",
+			podToAdd:    pod1.Pod.NamespacedName,
+			prefixModel: "model1",
+			expectedScores: map[types.Pod]float64{
+				pod1: 1.0,
+				pod2: 0.0,
+			}, // pod1 matches, pod2 doesn't
 		},
 		{
 			name:           "no prefix match",
@@ -98,7 +92,7 @@ func TestPrefixAwareScorer(t *testing.T) {
 			prefixToAdd:    "hello",
 			podToAdd:       pod1.Pod.NamespacedName,
 			prefixModel:    "model1",
-			expectedScores: []float64{0, 0}, // No matching prefix
+			expectedScores: map[types.Pod]float64{}, // No matching prefix
 		},
 		{
 			name:           "different model name",
@@ -107,63 +101,54 @@ func TestPrefixAwareScorer(t *testing.T) {
 			modelName:      "model2", // Try to find with model2
 			prefixToAdd:    "hello",
 			podToAdd:       pod1.Pod.NamespacedName,
-			prefixModel:    "model1",        // But prefix was added with model1
-			expectedScores: []float64{0, 0}, // Model name mismatch should result in no match
+			prefixModel:    "model1",                // But prefix was added with model1
+			expectedScores: map[types.Pod]float64{}, // Model name mismatch should result in no match
 		},
 		{
-			name:           "custom weight",
-			weight:         0.5,
-			prompt:         "hello world",
-			modelName:      "model1",
-			prefixToAdd:    "hello",
-			podToAdd:       pod1.Pod.NamespacedName,
-			prefixModel:    "model1",
-			expectedScores: []float64{0.5, 0}, // Weight affects score
+			name:        "custom weight",
+			weight:      0.5,
+			prompt:      "hello world",
+			modelName:   "model1",
+			prefixToAdd: "hello",
+			podToAdd:    pod1.Pod.NamespacedName,
+			prefixModel: "model1",
+			expectedScores: map[types.Pod]float64{
+				pod1: 0.5, // Pod1 matches with weight
+				pod2: 0.0, // Pod2 doesn't match
+			}, // Weight affects score
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset prefix store for each test
-			prefixStore = NewPrefixStore(PrefixStoreConfig{
-				MaxEntries:   100,
-				MinPrefixLen: 3,
-				MaxPrefixLen: 10,
-				EntryTTL:     1 * time.Hour,
-			})
+			config := scorer.DefaultPrefixStoreConfig()
+			config.BlockSize = 5 // set small chunking for testing
+
+			s := scorer.NewPrefixAwareScorer(config)
 
 			// Add prefix if specified
 			if tt.prefixToAdd != "" {
-				err := prefixStore.AddPrefix(ctx, tt.prefixToAdd, tt.podToAdd, tt.prefixModel)
+				err := s.GetPrefixStore().AddEntry(tt.prefixModel,
+					tt.prefixToAdd, &tt.podToAdd)
 				if err != nil {
 					t.Fatalf("Failed to add prefix: %v", err)
 				}
 			}
 
-			// Create scorer with test weight
-			scorer := NewPrefixAwareScorer(tt.weight, prefixStore)
-
 			// Create test context
-			sCtx := types.NewContext(ctx, &types.LLMRequest{
+			sCtx := types.NewSchedulingContext(ctx, &types.LLMRequest{
 				Prompt:              tt.prompt,
 				ResolvedTargetModel: tt.modelName,
-			}, []*types.PodMetrics{})
+			}, []types.Pod{}, 0)
 
 			// Score pods
-			pods := []*types.PodMetrics{pod1, pod2}
-			scores, err := scorer.ScoreTargets(sCtx, pods)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			pods := []types.Pod{pod1, pod2}
+			scores := s.Score(sCtx, pods)
 
-			// Verify scores
-			if len(scores) != len(tt.expectedScores) {
-				t.Fatalf("Expected %d scores, got %d", len(tt.expectedScores), len(scores))
-			}
-
-			for i, score := range scores {
-				if score.Score != tt.expectedScores[i] {
-					t.Errorf("Pod %d: expected score %v, got %v", i, tt.expectedScores[i], score.Score)
+			for p, score := range scores {
+				if score != tt.expectedScores[p] {
+					t.Errorf("Pod %v: expected score %v, got %v", p, tt.expectedScores[p], score)
 				}
 			}
 		})
