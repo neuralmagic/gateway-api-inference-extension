@@ -14,6 +14,7 @@ limitations under the License.
 package scorer
 
 import (
+	"encoding/base64"
 	"strings"
 	"sync"
 	"time"
@@ -26,7 +27,6 @@ const (
 	sessionKeepAliveTime           = 60 * time.Minute // How long should an idle session be kept alive
 	sessionKeepAliveCheckFrequency = 15 * time.Minute // How often to check for overly idle sessions
 	sessionIDHeader                = "Session-ID"     // hame of the session header in request
-	notSecretKey                   = "my_not_secret_key"
 )
 
 // sessionAffinity is a routing scorer that routes subsequent
@@ -37,11 +37,14 @@ type SessionAffinityScorer struct {
 	sessions *sync.Map
 }
 
-func NewSessionAffinityScorer() plugins.Scorer {
+func NewSessionAffinityScorer() plugins.ScorerWithPostResponse {
 	s := &SessionAffinityScorer{
 		sessions: &sync.Map{},
 	}
-	return s
+	return plugins.ScorerWithPostResponse{
+		Scorer:       s,
+		PostResponse: s,
+	}
 }
 
 func (s *SessionAffinityScorer) Name() string {
@@ -64,7 +67,7 @@ func (s *SessionAffinityScorer) Score(ctx *types.SchedulingContext, pods []types
 		if sessionId == "" {
 			scoredPods[pod] = 0.0
 		} else {
-			if pod.GetPod().NamespacedName.String() == xorEncryptDecrypt(sessionId, notSecretKey) {
+			if pod.GetPod().NamespacedName.String() == decode(ctx, sessionId) {
 				scoredPods[pod] = 1.0
 			}
 		}
@@ -73,10 +76,19 @@ func (s *SessionAffinityScorer) Score(ctx *types.SchedulingContext, pods []types
 	return scoredPods
 }
 
-func xorEncryptDecrypt(input, key string) string {
-	output := make([]byte, len(input))
-	for i := range input {
-		output[i] = input[i] ^ key[i%len(key)]
+func (s *SessionAffinityScorer) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
+	ctx.MutatedHeaders[sessionIDHeader] = encode(pod.GetPod().NamespacedName.String())
+}
+
+func encode(plain string) string {
+	return base64.StdEncoding.EncodeToString([]byte(plain))
+}
+
+func decode(ctx *types.SchedulingContext, encoded string) string {
+	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		ctx.Logger.Error(err, "Error decoding")
+		return ""
 	}
-	return string(output)
+	return string(decodedBytes)
 }
