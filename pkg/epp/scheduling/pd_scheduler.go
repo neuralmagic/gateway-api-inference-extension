@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 	errutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/error"
-	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
 const (
@@ -52,7 +51,6 @@ type PDScheduler struct {
 // Schedule finds the target pod based on metrics and the requested lora adapter.
 func (s *PDScheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
 	logger := log.FromContext(ctx).WithValues("pd-schedule", req)
-	loggerDebug := logger.V(logutil.DEBUG)
 
 	if len(req.Prompt) < PromptLengthThreshold {
 		// prompt is short enough - use decode scheduling logic
