@@ -86,19 +86,23 @@ func TestScorers(t *testing.T) {
 				},
 			},
 			wantRes: &types.Result{
-				TargetPod: &types.PodMetrics{
-					Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "pod2"}},
-					Metrics: &backendmetrics.Metrics{
-						WaitingQueueSize:    0,
-						KVCacheUsagePercent: 0.2,
-						MaxActiveModels:     2,
-						ActiveModels: map[string]int{
-							"foo": 1,
-							"bar": 1,
+				TargetPod: &types.ScoredPod{
+					Pod: &types.PodMetrics{
+						Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "pod2"}},
+						Metrics: &backendmetrics.Metrics{
+							WaitingQueueSize:    0,
+							KVCacheUsagePercent: 0.2,
+							MaxActiveModels:     2,
+							ActiveModels: map[string]int{
+								"foo": 1,
+								"bar": 1,
+							},
+							WaitingModels: map[string]int{},
 						},
-						WaitingModels: map[string]int{},
 					},
+					Score: 0.5,
 				},
+				MutatedHeaders: map[string]string{},
 			},
 		},
 	}
