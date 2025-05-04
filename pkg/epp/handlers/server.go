@@ -66,8 +66,8 @@ type StreamingServer struct {
 }
 
 type Scheduler interface {
-	RunPostResponsePlugins(ctx context.Context, req *types.LLMRequest, tragetPodName string) (*schedulingtypes.Result, error)
 	OnRequest(ctx context.Context, b *schedulingtypes.LLMRequest) (result *schedulingtypes.Result, err error)
+	OnResponse(ctx context.Context, req *types.LLMRequest, tragetPodName string) (*schedulingtypes.Result, error)
 }
 
 // RequestContext stores context information during the life time of an HTTP request.
@@ -212,7 +212,7 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 			}
 
 			var result *types.Result
-			result, err = s.scheduler.RunPostResponsePlugins(ctx, llmReq, reqCtx.TargetPod)
+			result, err = s.scheduler.OnResponse(ctx, llmReq, reqCtx.TargetPod)
 			if err != nil {
 				logger.V(logutil.DEFAULT).Error(err, "Error handling response")
 				reqCtx.ResponseStatusCode = errutil.ModelServerError

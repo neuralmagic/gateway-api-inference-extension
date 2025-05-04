@@ -518,7 +518,7 @@ func TestPostResponse(t *testing.T) {
 			Headers: test.responseHeaders,
 		}
 
-		result, err := scheduler.RunPostResponsePlugins(context.Background(), req, test.input[0].Pod.NamespacedName.String())
+		result, err := scheduler.OnResponse(context.Background(), req, test.input[0].Pod.NamespacedName.String())
 		if err != nil {
 			t.Errorf("Received an error. Error: %s", err)
 		}

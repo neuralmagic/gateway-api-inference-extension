@@ -214,9 +214,9 @@ func (s *Scheduler) runPostSchedulePlugins(ctx *types.SchedulingContext, res *ty
 	}
 }
 
-func (s *Scheduler) RunPostResponsePlugins(ctx context.Context, req *types.LLMRequest, targetPodName string) (*types.Result, error) {
-	logger := log.FromContext(ctx)
-
+// OnResponse is invoked during the processing of a response from an inference pod. It will invoke
+// any defined plugins that process the response.
+func (s *Scheduler) OnResponse(ctx context.Context, req *types.LLMRequest, targetPodName string) (*types.Result, error) {
 	pool, err := s.datastore.PoolGet()
 	if err != nil {
 		return nil, errutil.Error{Code: errutil.Internal, Msg: "failed to find a target pod"} // pool not defined, no pods
@@ -236,14 +236,18 @@ func (s *Scheduler) RunPostResponsePlugins(ctx context.Context, req *types.LLMRe
 
 	sCtx := types.NewSchedulingContext(ctx, req, pods, pool.Spec.TargetPortNumber)
 
-	for _, plugin := range s.postResponsePlugins {
-		logger.V(logutil.DEBUG).Info("Running post-response plugin", "plugin", plugin.Name())
-		before := time.Now()
-		plugin.PostResponse(sCtx, targetPod)
-		metrics.RecordSchedulerPluginProcessingLatency(plugins.PostResponsePluginType, plugin.Name(), time.Since(before))
-	}
+	s.runPostResponsePlugins(sCtx, targetPod)
 
 	return &types.Result{TargetPod: nil, MutatedHeaders: sCtx.MutatedHeaders}, nil
+}
+
+func (s *Scheduler) runPostResponsePlugins(ctx *types.SchedulingContext, targetPod types.Pod) {
+	for _, plugin := range s.postResponsePlugins {
+		ctx.Logger.V(logutil.DEBUG).Info("Running post-response plugin", "plugin", plugin.Name())
+		before := time.Now()
+		plugin.PostResponse(ctx, targetPod)
+		metrics.RecordSchedulerPluginProcessingLatency(plugins.PostResponsePluginType, plugin.Name(), time.Since(before))
+	}
 }
 
 type defaultPlugin struct {
