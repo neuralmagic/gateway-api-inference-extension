@@ -16,7 +16,6 @@ package scorer
 import (
 	"encoding/base64"
 	"strings"
-	"sync"
 	"time"
 
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
@@ -34,13 +33,10 @@ const (
 // session was sent to, by giving that pod the specified weight and assigning
 // zero score to the rest of the targets
 type SessionAffinityScorer struct {
-	sessions *sync.Map
 }
 
 func NewSessionAffinityScorer() plugins.ScorerWithPostResponse {
-	s := &SessionAffinityScorer{
-		sessions: &sync.Map{},
-	}
+	s := &SessionAffinityScorer{}
 	return plugins.ScorerWithPostResponse{
 		Scorer:       s,
 		PostResponse: s,
