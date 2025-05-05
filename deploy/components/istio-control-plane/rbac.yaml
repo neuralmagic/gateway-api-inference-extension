@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istio-reader
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istio-reader-clusterrole-istio-system
 rules:
@@ -111,6 +111,7 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -121,8 +122,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod-clusterrole-istio-system
 rules:
@@ -346,6 +347,7 @@ rules:
   - get
   - watch
   - list
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -356,8 +358,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod-gateway-controller-istio-system
 rules:
@@ -408,8 +410,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istio-reader
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istio-reader-clusterrole-istio-system
 roleRef:
@@ -431,8 +433,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod-clusterrole-istio-system
 roleRef:
@@ -454,8 +456,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod-gateway-controller-istio-system
 roleRef:
@@ -466,6 +468,7 @@ subjects:
 - kind: ServiceAccount
   name: istiod
   namespace: istio-system
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -475,8 +478,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istio-ingressgateway
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istio-ingress-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a7
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istio-ingress-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc
     install.operator.istio.io/owning-resource: unknown
     istio.io/rev: default
     operator.istio.io/component: IngressGateways
@@ -503,8 +506,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod
   namespace: istio-system
@@ -551,8 +554,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istio-ingressgateway
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istio-ingress-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a7
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istio-ingress-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc
     install.operator.istio.io/owning-resource: unknown
     istio.io/rev: default
     operator.istio.io/component: IngressGateways
@@ -566,6 +569,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: istio-ingressgateway-service-account
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -576,8 +580,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     release: istio
   name: istiod
   namespace: istio-system

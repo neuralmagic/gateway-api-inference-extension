@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istio-ingressgateway
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istio-ingress-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a7
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istio-ingress-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc
     install.operator.istio.io/owning-resource: unknown
     istio: ingressgateway
     istio.io/rev: default
@@ -22,6 +22,7 @@ spec:
     matchLabels:
       app: istio-ingressgateway
       istio: ingressgateway
+
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -32,8 +33,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: istiod
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: istiod-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: istiod-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
     install.operator.istio.io/owning-resource: unknown
     istio: pilot
     istio.io/rev: default
