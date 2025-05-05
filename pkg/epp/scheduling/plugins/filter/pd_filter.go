@@ -20,8 +20,7 @@ import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
-// ////////////////////////////
-// Prefill filter
+// PrefillFilter - filters out all pods that are not marked as decode/both pod role
 var PrefillFilter = &baseFilter{
 	name:   "prefill_filter",
 	filter: prefillFilterFunc,
@@ -40,8 +39,7 @@ func prefillFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.P
 	return filteredPods
 }
 
-// ////////////////////////////
-// Decode filter
+// DecodeFilter - fiters out all pods that are not marked as prefill pod role
 var DecodeFilter = &baseFilter{
 	name:   "decode_filter",
 	filter: decodeFilterFunc,
