@@ -109,7 +109,7 @@ func createSchedulerContext(ctx context.Context, req *types.LLMRequest, datastor
 	// Snapshot pod metrics from the datastore to:
 	// 1. Reduce concurrent access to the datastore.
 	// 2. Ensure consistent data during the scheduling operation of a request.
-	return types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(s.datastore.PodGetAll()), pool.Spec.TargetPortNumber), nil
+	return types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(datastore.PodGetAll()), pool.Spec.TargetPortNumber), nil
 }
 
 // Schedule finds the target pod based on metrics and the requested lora adapter.
