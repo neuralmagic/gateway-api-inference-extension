@@ -28,7 +28,7 @@ To enable PD Scheduler, the following env var must be configured:
 export PD_ENABLED=true
 ```
 
-To define prompt length threshold (requests with length is longer than the value defined here will be processed using prefill-decode process), the following env var must be configured:
+To define prompt length threshold (requests with length longer than the value defined here will be processed using prefill-decode process), the following env var must be configured:
 ```
 export PD_PROMPT_LEN_THRESHOLD=10
 ```
