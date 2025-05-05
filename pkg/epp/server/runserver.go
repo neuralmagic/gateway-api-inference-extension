@@ -137,7 +137,14 @@ func (r *ExtProcServerRunner) AsRunnable(logger logr.Logger) manager.Runnable {
 		} else {
 			srv = grpc.NewServer()
 		}
-		extProcServer := handlers.NewStreamingServer(scheduling.NewScheduler(r.Datastore), r.DestinationEndpointHintMetadataNamespace, r.DestinationEndpointHintKey, r.Datastore)
+
+		var scheduler handlers.Scheduler
+		if scheduling.PDEnabled {
+			scheduler = scheduling.NewPDScheduler(r.Datastore)
+		} else {
+			scheduler = scheduling.NewScheduler(r.Datastore)
+		}
+		extProcServer := handlers.NewStreamingServer(scheduler, r.DestinationEndpointHintMetadataNamespace, r.DestinationEndpointHintKey, r.Datastore)
 		extProcPb.RegisterExternalProcessorServer(
 			srv,
 			extProcServer,

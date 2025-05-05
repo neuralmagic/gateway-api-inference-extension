@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/api/v1alpha2"
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
@@ -99,12 +100,8 @@ type Datastore interface {
 	PodGetAll() []backendmetrics.PodMetrics
 }
 
-// Schedule finds the target pod based on metrics and the requested lora adapter.
-func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
-	logger := log.FromContext(ctx).WithValues("request", req)
-	loggerDebug := logger.V(logutil.DEBUG)
-
-	pool, err := s.datastore.PoolGet()
+func createSchedulerContext(ctx context.Context, req *types.LLMRequest, datastore Datastore) (*types.SchedulingContext, error) {
+	pool, err := datastore.PoolGet()
 	if err != nil {
 		return nil, errutil.Error{Code: errutil.Internal, Msg: "failed to find a target pod"} // pool not defined, no pods
 	}
@@ -112,7 +109,23 @@ func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types
 	// Snapshot pod metrics from the datastore to:
 	// 1. Reduce concurrent access to the datastore.
 	// 2. Ensure consistent data during the scheduling operation of a request.
-	sCtx := types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(s.datastore.PodGetAll()), pool.Spec.TargetPortNumber)
+	return types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(datastore.PodGetAll()), pool.Spec.TargetPortNumber), nil
+}
+
+// Schedule finds the target pod based on metrics and the requested lora adapter.
+func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
+	logger := log.FromContext(ctx).WithValues("request", req)
+	loggerDebug := logger.V(logutil.DEBUG)
+
+	sCtx, err := createSchedulerContext(ctx, req, s.datastore)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.scheduleWithContext(ctx, sCtx, req, loggerDebug)
+}
+
+func (s *Scheduler) scheduleWithContext(ctx context.Context, sCtx *types.SchedulingContext, req *types.LLMRequest, loggerDebug logr.Logger) (*types.Result, error) {
 	loggerDebug.Info(fmt.Sprintf("Scheduling a request, Metrics: %+v", sCtx.PodsSnapshot))
 
 	s.runPreSchedulePlugins(sCtx)

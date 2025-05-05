@@ -16,61 +16,44 @@ limitations under the License.
 package filter
 
 import (
-	"fmt"
-	"math/rand/v2"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
-	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
-const (
-	prefillPodHeader = "x-prefiller-url"
-)
-
-var PDFilter = &baseFilter{
-	name:   "p/d filter",
-	filter: prefillDecodeFilterFunc,
+// PrefillFilter - filters out all pods that are not marked as decode/both pod role
+var PrefillFilter = &baseFilter{
+	name:   "prefill_filter",
+	filter: prefillFilterFunc,
 }
 
-// prefillDecodeFilterFunc implements a pod selection strategy that filters out pods,
-// which role is 'prefill', in addition a header with selected prefill pod is added
-//
-// Initial implementation:
-// 1 - select one random pod marked as 'prefill' and add it name to header
-// 2 - return a random pod that marked as "decode" or "both"
-//
-// Returns:
-//   - Filtered slice of pod metrics, could contain one or zerro elements
-func prefillDecodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
-	loggerDebug := log.FromContext(ctx).WithName("pd_filter").V(logutil.DEBUG)
-
-	pPods := make([]types.Pod, 0)
-	dPods := make([]types.Pod, 0)
+// prefillFilterFunc filters out all pods that are not marked as "prefill"
+func prefillFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
+	filteredPods := make([]types.Pod, 0)
 
 	for _, pod := range pods {
 		if pod.GetPod().Role == metrics.Prefill {
-			pPods = append(pPods, pod)
-		} else if pod.GetPod().Role == metrics.Decode || pod.GetPod().Role == metrics.Both {
-			dPods = append(dPods, pod)
+			filteredPods = append(filteredPods, pod)
 		}
 	}
 
-	if len(pPods) > 0 {
-		// select a random prefill pod
-		randomIndex := rand.IntN(len(pPods))
-		url := fmt.Sprintf("http://%s:%d", pPods[randomIndex].GetPod().Address, ctx.TargetPort)
-		loggerDebug.Info("Prefill pod selected", "url", url)
+	return filteredPods
+}
 
-		ctx.MutatedHeaders[prefillPodHeader] = url
+// DecodeFilter - fiters out all pods that are not marked as prefill pod role
+var DecodeFilter = &baseFilter{
+	name:   "decode_filter",
+	filter: decodeFilterFunc,
+}
+
+// decodeFilterFunc filters out all pods that are not marked as "decode" or "both"
+func decodeFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.Pod {
+	filteredPods := make([]types.Pod, 0)
+
+	for _, pod := range pods {
+		if pod.GetPod().Role == metrics.Decode || pod.GetPod().Role == metrics.Both {
+			filteredPods = append(filteredPods, pod)
+		}
 	}
 
-	if len(dPods) > 1 {
-		// leave only one pod
-		randomIndex := rand.IntN(len(dPods))
-		return []types.Pod{dPods[randomIndex]}
-	}
-
-	return dPods
+	return filteredPods
 }
