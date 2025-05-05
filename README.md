@@ -23,6 +23,12 @@ export ENABLE_LOAD_AWARE_SCORER=true
 export LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
 
+To enable the SessionAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_SESSION_AWARE_SCORER=true
+export SESSION_AWARE_SCORER_WEIGHT=1.0
+```
+
 To enable Prefill/Decode (PD) processing, the following environment variable must be configured:
 ```
 export PD_ENABLED=true
