@@ -98,3 +98,33 @@ func (s *PrefixAwareScorer) PostResponse(ctx *types.SchedulingContext, pod types
 func (s *PrefixAwareScorer) GetPrefixStore() *PrefixStore {
 	return s.prefixStore
 }
+
+// podToKey is a function type that converts a Pod to a string key.
+// It returns the key and a boolean indicating success.
+type podToKeyFunc func(pod types.Pod) (string, bool)
+
+func indexedScoresToNormalizedScoredPods(pods []types.Pod, podToKey podToKeyFunc,
+	scores map[string]int) map[types.Pod]float64 {
+	scoredPods := make(map[types.Pod]float64)
+	minScore, maxScore := getMinMax(scores)
+
+	for _, pod := range pods {
+		key, ok := podToKey(pod)
+		if !ok {
+			continue
+		}
+
+		if score, ok := scores[key]; ok {
+			if minScore == maxScore {
+				scoredPods[pod] = 1.0
+				continue
+			}
+
+			scoredPods[pod] = float64(score-minScore) / float64(maxScore-minScore)
+		} else {
+			scoredPods[pod] = 0.0
+		}
+	}
+
+	return scoredPods
+}

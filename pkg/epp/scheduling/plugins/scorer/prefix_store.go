@@ -89,7 +89,7 @@ func NewPrefixStore(config *PrefixStoreConfig) *PrefixStore {
 
 // AddEntry adds a new entry to the prefix store.
 func (s *PrefixStore) AddEntry(modelName string, prompt string, pod *types.NamespacedName) error {
-	if prompt == "" || pod == nil {
+	if prompt == "" || pod == nil || len(prompt) < s.blockSize /* skip if prompt is too short */ {
 		return nil
 	}
 
@@ -111,7 +111,7 @@ func (s *PrefixStore) AddEntry(modelName string, prompt string, pod *types.Names
 	for start := 0; start < len(prompt); start += s.blockSize {
 		end := start + s.blockSize
 		if end > len(prompt) {
-			end = len(prompt)
+			break // skip partial blocks
 		}
 
 		// Compute the hash for the current block
@@ -142,6 +142,10 @@ func (s *PrefixStore) AddEntry(modelName string, prompt string, pod *types.Names
 // FindMatchingPods finds all pods that match the given prompt and model name.
 // It returns a map of pods and the number of blocks they match.
 func (s *PrefixStore) FindMatchingPods(prompt, modelName string) map[string]int {
+	if prompt == "" || modelName == "" || len(prompt) < s.blockSize /* skip if prompt is too short */ {
+		return nil
+	}
+
 	s.RLock()
 	cache, ok := s.store[modelName] // cache is thread-safe
 	s.RUnlock()
