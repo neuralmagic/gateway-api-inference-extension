@@ -25,11 +25,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Set the host port to map to the Gateway's inbound port (30080)
 : "${GATEWAY_HOST_PORT:=30080}"
 
+# Set the Gateway implementation to use
+: "${GATEWAY_IMPLEMENTATION:=kgateway}"
+
+# Set the namespace for the Gateway control-plane components
+: "${GATEWAY_CONTROL_PLANE_NAMESPACE:=kgateway-system}"
+
 # Set the inference pool name for the deployment
 export POOL_NAME="${POOL_NAME:-vllm-llama3-8b-instruct}"
 
 # Set the model name to deploy
 export MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
+
 # ------------------------------------------------------------------------------
 # Setup & Requirement Checks
 # ------------------------------------------------------------------------------
@@ -109,23 +116,42 @@ kustomize build deploy/components/crds-gateway-api |
 kustomize build deploy/components/crds-gie |
 	kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
 
-kustomize build --enable-helm deploy/components/crds-kgateway |
-	kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
-
 # ------------------------------------------------------------------------------
-# Development Environment
+# Deploy
 # ------------------------------------------------------------------------------
 
-# Deploy the environment to the "default" namespace
-kustomize build --enable-helm deploy/environments/dev/kind-kgateway \
-	| envsubst | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
-	| kubectl --context ${KUBE_CONTEXT} apply -f -
+if [[ "${GATEWAY_IMPLEMENTATION}" == "kgateway" ]]; then
+	# Deploy the KGateway CRDs
+	kustomize build --enable-helm deploy/components/crds-kgateway |
+		kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
 
-# Wait for all control-plane pods to be ready
-kubectl --context ${KUBE_CONTEXT} -n kgateway-system wait --for=condition=Ready --all pods --timeout=360s
+	# Deploy the environment to the "default" namespace
+	kustomize build --enable-helm deploy/environments/dev/kind-kgateway \
+		| envsubst \${POOL_NAME} | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
+		| kubectl --context ${KUBE_CONTEXT} apply -f -
+elif [[ "${GATEWAY_IMPLEMENTATION}" == "istio" ]]; then
+	# Deploy the Istio CRDs
+	kustomize build --enable-helm deploy/components/crds-istio |
+		kubectl --context ${KUBE_CONTEXT} apply --server-side --force-conflicts -f -
 
-# Wait for all pods to be ready
-kubectl --context ${KUBE_CONTEXT} wait --for=condition=Ready --all pods --timeout=300s
+	# Deploy the environment to the "default" namespace
+	kustomize build --enable-helm deploy/environments/dev/kind-istio \
+		| envsubst \${POOL_NAME} | sed "s/REPLACE_NAMESPACE/${PROJECT_NAMESPACE}/gI" \
+		| kubectl --context ${KUBE_CONTEXT} apply -f -
+else
+	echo "ERROR: ${GATEWAY_IMPLEMENTATION} is not a valid Gateway implementation" >&2
+	exit 1
+fi
+
+# ------------------------------------------------------------------------------
+# Verify
+# ------------------------------------------------------------------------------
+
+# Wait for all control-plane deployments to be ready
+kubectl --context ${KUBE_CONTEXT} -n ${GATEWAY_CONTROL_PLANE_NAMESPACE} wait --for=condition=available --timeout=60s deployment --all
+
+# Wait for all deployments to be ready
+kubectl --context ${KUBE_CONTEXT} -n default wait --for=condition=available --timeout=60s deployment --all
 
 # Wait for the gateway to be ready
 kubectl --context ${KUBE_CONTEXT} wait gateway/inference-gateway --for=condition=Programmed --timeout=60s
