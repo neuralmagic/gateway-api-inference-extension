@@ -57,6 +57,11 @@ func init() {
 	// set IsPDEnabled by environment
 	PDEnabled = getPDEnabledFromEnvironment(loggerDebug)
 	promptLengthThreshold = getPDPromptLenThresholdFromEnvironment(loggerDebug)
+
+	// update default config if pd is enabled
+	if PDEnabled {
+		defaultConfig.filters = append(defaultConfig.filters, filter.DecodeFilter)
+	}
 }
 
 func loadPrefillConfiguration(ctx context.Context, logger logr.Logger) {
