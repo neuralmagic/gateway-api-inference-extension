@@ -74,8 +74,3 @@ type PostResponse interface {
 	Plugin
 	PostResponse(ctx *types.SchedulingContext, pod types.Pod)
 }
-
-type ScorerWithPostResponse struct {
-	Scorer
-	PostResponse
-}

@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
@@ -32,22 +31,18 @@ const (
 // requests in a session to the same pod as the first request in the
 // session was sent to, by giving that pod the specified weight and assigning
 // zero score to the rest of the targets
-type SessionAffinityScorer struct {
+type SessionAffinity struct {
 }
 
-func NewSessionAffinityScorer() plugins.ScorerWithPostResponse {
-	s := &SessionAffinityScorer{}
-	return plugins.ScorerWithPostResponse{
-		Scorer:       s,
-		PostResponse: s,
-	}
+func NewSessionAffinity() *SessionAffinity {
+	return &SessionAffinity{}
 }
 
-func (s *SessionAffinityScorer) Name() string {
+func (s *SessionAffinity) Name() string {
 	return "session affinity scorer"
 }
 
-func (s *SessionAffinityScorer) Score(ctx *types.SchedulingContext, pods []types.Pod) map[types.Pod]float64 {
+func (s *SessionAffinity) Score(ctx *types.SchedulingContext, pods []types.Pod) map[types.Pod]float64 {
 	scoredPods := make(map[types.Pod]float64)
 
 	reqHeaders := ctx.Req.Headers
@@ -72,7 +67,7 @@ func (s *SessionAffinityScorer) Score(ctx *types.SchedulingContext, pods []types
 	return scoredPods
 }
 
-func (s *SessionAffinityScorer) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
+func (s *SessionAffinity) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
 	ctx.MutatedHeaders[sessionIDHeader] = encode(pod.GetPod().NamespacedName.String())
 }
 

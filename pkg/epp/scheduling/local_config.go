@@ -77,10 +77,10 @@ func setSessionAwareScorer() {
 	}
 
 	sessionBasedScorerWeight := envutil.GetEnvInt(sessionAwareScorerWeightEnvVar, 1, loggerDebug)
-	sessionScorerWithPostResponse := scorer.NewSessionAffinityScorer()
+	sessionAffinity := scorer.NewSessionAffinity()
 
-	defaultConfig.scorers[sessionScorerWithPostResponse.Scorer] = sessionBasedScorerWeight
-	defaultConfig.postResponsePlugins = append(defaultConfig.postResponsePlugins, sessionScorerWithPostResponse.PostResponse)
+	defaultConfig.scorers[sessionAffinity] = sessionBasedScorerWeight
+	defaultConfig.postResponsePlugins = append(defaultConfig.postResponsePlugins, sessionAffinity)
 	loggerDebug.Info("Initialized SessionAwareScorer", "weight", sessionBasedScorerWeight)
 }
 
