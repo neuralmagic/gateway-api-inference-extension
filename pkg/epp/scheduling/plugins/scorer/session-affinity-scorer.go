@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	sessionKeepAliveTime           = 60 * time.Minute // How long should an idle session be kept alive
-	sessionKeepAliveCheckFrequency = 15 * time.Minute // How often to check for overly idle sessions
-	sessionTokenHeader             = "session-token"  // name of the session header in request
+	sessionKeepAliveTime           = 60 * time.Minute  // How long should an idle session be kept alive
+	sessionKeepAliveCheckFrequency = 15 * time.Minute  // How often to check for overly idle sessions
+	sessionTokenHeader             = "x-session-token" // name of the session header in request
 )
 
 // sessionAffinity is a routing scorer that routes subsequent
@@ -52,11 +52,20 @@ func (s *SessionAffinity) Score(ctx *types.SchedulingContext, pods []types.Pod) 
 		sessionToken = v
 	}
 
+	podName := ""
+	if sessionToken != "" {
+		decodedBytes, err := base64.StdEncoding.DecodeString(sessionToken)
+		if err != nil {
+			ctx.Logger.Error(err, "Error decoding")
+		} else {
+			podName = string(decodedBytes)
+		}
+	}
 	for _, pod := range pods {
-		if sessionToken == "" {
+		if podName == "" {
 			scoredPods[pod] = 0.0
 		} else {
-			if pod.GetPod().NamespacedName.String() == decode(ctx, sessionToken) {
+			if pod.GetPod().NamespacedName.String() == podName {
 				scoredPods[pod] = 1.0
 			}
 		}
@@ -66,18 +75,5 @@ func (s *SessionAffinity) Score(ctx *types.SchedulingContext, pods []types.Pod) 
 }
 
 func (s *SessionAffinity) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
-	ctx.MutatedHeaders[sessionTokenHeader] = encode(pod.GetPod().NamespacedName.String())
-}
-
-func encode(plain string) string {
-	return base64.StdEncoding.EncodeToString([]byte(plain))
-}
-
-func decode(ctx *types.SchedulingContext, encoded string) string {
-	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		ctx.Logger.Error(err, "Error decoding")
-		return ""
-	}
-	return string(decodedBytes)
+	ctx.MutatedHeaders[sessionTokenHeader] = base64.StdEncoding.EncodeToString([]byte(pod.GetPod().NamespacedName.String()))
 }
