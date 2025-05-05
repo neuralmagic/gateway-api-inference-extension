@@ -15,7 +15,6 @@ package scorer
 
 import (
 	"encoding/base64"
-	"strings"
 	"time"
 
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
@@ -24,7 +23,7 @@ import (
 const (
 	sessionKeepAliveTime           = 60 * time.Minute // How long should an idle session be kept alive
 	sessionKeepAliveCheckFrequency = 15 * time.Minute // How often to check for overly idle sessions
-	sessionIDHeader                = "Session-ID"     // hame of the session header in request
+	sessionTokenHeader             = "session-token"  // name of the session header in request
 )
 
 // sessionAffinity is a routing scorer that routes subsequent
@@ -47,18 +46,17 @@ func (s *SessionAffinity) Score(ctx *types.SchedulingContext, pods []types.Pod) 
 
 	reqHeaders := ctx.Req.Headers
 
-	var sessionId = ""
-	for k, v := range reqHeaders {
-		if strings.EqualFold(k, sessionIDHeader) {
-			sessionId = v
-		}
+	var sessionToken = ""
+	v, ok := reqHeaders[sessionTokenHeader]
+	if ok {
+		sessionToken = v
 	}
 
 	for _, pod := range pods {
-		if sessionId == "" {
+		if sessionToken == "" {
 			scoredPods[pod] = 0.0
 		} else {
-			if pod.GetPod().NamespacedName.String() == decode(ctx, sessionId) {
+			if pod.GetPod().NamespacedName.String() == decode(ctx, sessionToken) {
 				scoredPods[pod] = 1.0
 			}
 		}
@@ -68,7 +66,7 @@ func (s *SessionAffinity) Score(ctx *types.SchedulingContext, pods []types.Pod) 
 }
 
 func (s *SessionAffinity) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
-	ctx.MutatedHeaders[sessionIDHeader] = encode(pod.GetPod().NamespacedName.String())
+	ctx.MutatedHeaders[sessionTokenHeader] = encode(pod.GetPod().NamespacedName.String())
 }
 
 func encode(plain string) string {
