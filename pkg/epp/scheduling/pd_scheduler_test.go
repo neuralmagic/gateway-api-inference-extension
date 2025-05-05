@@ -81,7 +81,7 @@ func TestPDSchedule(t *testing.T) {
 				Critical:            true,
 				Prompt:              "123",
 			},
-			// pod2 will be picked because it is decode pod
+			// pod1 will be picked because it is the only one pod
 			input: []*backendmetrics.FakePodMetrics{pod1},
 			wantRes: &types.Result{
 				TargetPod: &types.ScoredPod{
@@ -98,7 +98,7 @@ func TestPDSchedule(t *testing.T) {
 				Critical:            true,
 				Prompt:              "12345678901",
 			},
-			// pod2 will be picked because it is decode pod
+			// pod2 will be picked because it is the decode pod
 			input: []*backendmetrics.FakePodMetrics{pod1, pod2},
 			wantRes: &types.Result{
 				TargetPod: &types.ScoredPod{
