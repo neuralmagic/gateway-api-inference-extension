@@ -49,6 +49,12 @@ type PDScheduler struct {
 }
 
 // Schedule finds the target pod based on metrics and the requested lora adapter.
+// PD schedule uses two base schedules to process request, configuration is currently loaded from environment variables.
+// If request prompt is short enough (defined by threshold in the configuration) - use default behavior
+// If request prompt is long enough to use prefill-decode process,
+// 1 - find the pod for prefill, save it url in a special header, for this use Scheduler configured for this goal, which uses prefill filter
+// and scorers according to configuration.
+// 2 - find the pod for decode, use Scheduler configured for this goal, which uses decode filer and scorers defined in the configuration
 func (s *PDScheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
 	logger := log.FromContext(ctx).WithValues("pd-schedule", req)
 
