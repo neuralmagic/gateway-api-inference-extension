@@ -43,7 +43,7 @@ var decodeConfig = &SchedulerConfig{
 }
 
 var PDEnabled = false
-var PromptLengthThreshold int
+var promptLengthThreshold int
 
 func init() {
 	ctx := context.Background()
@@ -54,25 +54,17 @@ func init() {
 
 	// set IsPDEnabled by environment
 	PDEnabled = getPDEnabledFromEnvironment(loggerDebug)
-	PromptLengthThreshold = getPDPromptLenThresholdFromEnvironment(loggerDebug)
+	promptLengthThreshold = getPDPromptLenThresholdFromEnvironment(loggerDebug)
 }
 
 func loadPrefillConfiguration(ctx context.Context, logger logr.Logger) {
 	// add scorers
 	addScorerByEnvironment(ctx, prefillConfig, kvCacheAwareScorerName, kvCacheScorerEnablementEnvVar, kvCacheScorerWeightEnvVar, logger)
 	addScorerByEnvironment(ctx, prefillConfig, loadAwareScorerName, loadAwareScorerEnablementEnvVar, loadAwareScorerWeightEnvVar, logger)
-
-	// set filter
-	// TODO - do we want to keep default filters?
-	prefillConfig.filters = []plugins.Filter{filter.PrefillFilter}
 }
 
 func loadDecodeConfiguration(ctx context.Context, logger logr.Logger) {
 	// add scorers
 	addScorerByEnvironment(ctx, decodeConfig, kvCacheAwareScorerName, kvCacheScorerEnablementEnvVar, kvCacheScorerWeightEnvVar, logger)
 	addScorerByEnvironment(ctx, decodeConfig, loadAwareScorerName, loadAwareScorerEnablementEnvVar, loadAwareScorerWeightEnvVar, logger)
-
-	// set filter
-	// TODO - do we want to keep default filters?
-	decodeConfig.filters = []plugins.Filter{filter.DecodeFilter}
 }

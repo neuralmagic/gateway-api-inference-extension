@@ -23,7 +23,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
-	errutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/error"
 )
 
 const (
@@ -51,29 +50,24 @@ type PDScheduler struct {
 }
 
 // Schedule finds the target pod based on metrics and the requested lora adapter.
-// PD schedule uses two base schedules to process request, configuration is currently loaded from environment variables.
-// If request prompt is short enough (defined by threshold in the configuration) - use default behavior
-// If request prompt is long enough to use prefill-decode process,
-// 1 - find the pod for prefill, save it url in a special header, for this use Scheduler configured for this goal, which uses prefill filter
-// and scorers according to configuration.
-// 2 - find the pod for decode, use Scheduler configured for this goal, which uses decode filer and scorers defined in the configuration
+// PD scheduler uses three base schedulers to process requests, the overall configuration is currently loaded from environment variables.
+// If the request prompt is short enough (defined by the threshold in the configuration) - use the default behavior
+// If the request prompt is long enough to use prefill-decode process:
+// 1 - find the pod for prefill, save its url in a special header. For this, use the Scheduler configured for this goal, which uses the prefill filter
+// and scorers according to the configuration.
+// 2 - find the pod for decode, use the Scheduler configured for this goal, which uses the decode filer and scorers defined in the configuration
 func (s *PDScheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types.Result, error) {
 	logger := log.FromContext(ctx).WithValues("pd-schedule", req)
 
-	if len(req.Prompt) < PromptLengthThreshold {
-		// prompt is short enough - use decode scheduling logic
+	if len(req.Prompt) < promptLengthThreshold {
+		// the prompt is short enough - use the default scheduling logic
 		return s.defaultScheduler.Schedule(ctx, req)
 	}
 
-	pool, err := s.datastore.PoolGet()
+	sCtx, err := createSchedulerContext(ctx, req, s.datastore)
 	if err != nil {
-		return nil, errutil.Error{Code: errutil.Internal, Msg: "failed to find a target pod"} // pool not defined, no pods
+		return nil, err
 	}
-
-	// Snapshot pod metrics from the datastore to:
-	// 1. Reduce concurrent access to the datastore.
-	// 2. Ensure consistent data during the scheduling operation of a request.
-	sCtx := types.NewSchedulingContext(ctx, req, types.ToSchedulerPodMetrics(s.datastore.PodGetAll()), pool.Spec.TargetPortNumber)
 
 	// prompt requires processing on two pods - prefill and decode
 	// start with calculating of the prefill pod
