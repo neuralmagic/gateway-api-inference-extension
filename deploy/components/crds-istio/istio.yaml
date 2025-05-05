@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: authorizationpolicies.security.istio.io
 spec:
   group: security.istio.io
@@ -775,8 +775,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: destinationrules.networking.istio.io
 spec:
   group: networking.istio.io
@@ -6545,8 +6545,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: envoyfilters.networking.istio.io
 spec:
   group: networking.istio.io
@@ -6954,8 +6954,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: gateways.networking.istio.io
 spec:
   group: networking.istio.io
@@ -7681,8 +7681,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: peerauthentications.security.istio.io
 spec:
   group: security.istio.io
@@ -8035,8 +8035,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: proxyconfigs.networking.istio.io
 spec:
   group: networking.istio.io
@@ -8189,8 +8189,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: requestauthentications.security.istio.io
 spec:
   group: security.istio.io
@@ -8783,8 +8783,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: serviceentries.networking.istio.io
 spec:
   group: networking.istio.io
@@ -9705,8 +9705,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: sidecars.networking.istio.io
 spec:
   group: networking.istio.io
@@ -11357,8 +11357,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: telemetries.telemetry.istio.io
 spec:
   group: telemetry.istio.io
@@ -12281,8 +12281,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: virtualservices.networking.istio.io
 spec:
   group: networking.istio.io
@@ -15444,8 +15444,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: wasmplugins.extensions.istio.io
 spec:
   group: extensions.istio.io
@@ -15806,8 +15806,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: workloadentries.networking.istio.io
 spec:
   group: networking.istio.io
@@ -16312,8 +16312,8 @@ metadata:
     app.kubernetes.io/instance: istio
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
-    helm.sh/chart: base-1.26-alpha.80c74f7f43482c226f4f4b10b4dda6261b67a71f
+    app.kubernetes.io/version: 1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
+    helm.sh/chart: base-1.26-alpha.9befed2f1439d883120f8de70fd70d84ca0ebc3d
   name: workloadgroups.networking.istio.io
 spec:
   group: networking.istio.io
