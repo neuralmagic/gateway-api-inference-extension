@@ -28,5 +28,5 @@ resources:
 - httproutes.yaml
 
 images:
-- name: quay.io/llm-d/gateway-api-inference-extension
+- name: quay.io/llm-d/gateway-api-inference-extension/epp
   newTag: 0.0.1
