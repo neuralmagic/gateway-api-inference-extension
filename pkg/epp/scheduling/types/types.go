@@ -27,10 +27,10 @@ import (
 
 // LLMRequest is a structured representation of the fields we parse out of the LLMRequest body.
 type LLMRequest struct {
-	Model string
+	Model  string
+	Prompt string
 	// Target models is a map of target model name to weight.
 	TargetModels map[string]int
-	Prompt       string
 	Headers      map[string]string
 	// Resolved target model is the final target model after traffic split.
 	ResolvedTargetModel string

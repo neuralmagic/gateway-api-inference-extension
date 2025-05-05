@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/filter"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/picker"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorer"
 	envutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/env"
@@ -35,6 +34,7 @@ const (
 
 	kvCacheScorerWeightEnvVar      = "KVCACHE_AWARE_SCORER_WEIGHT"
 	loadAwareScorerWeightEnvVar    = "LOAD_AWARE_SCORER_WEIGHT"
+  prefixScorerWeightEnvVar       = "PREFIX_AWARE_SCORER_WEIGHT"
 	sessionAwareScorerWeightEnvVar = "SESSION_AWARE_SCORER_WEIGHT"
 )
 
@@ -48,7 +48,7 @@ func setDefaultConfig() {
 	setLoadAwareScorer()
 	setSessionAwareScorer()
 	setKVCacheAwareScorer()
-	setPDFilter()
+	setPrefixScorer()
 
 	defaultConfig.picker = picker.NewMaxScorePicker()
 }
@@ -104,15 +104,19 @@ func setKVCacheAwareScorer() {
 	loggerDebug.Info("Initialized KVCacheAwareScorer", "weight", kvCacheScorerWeight)
 }
 
-func setPDFilter() {
+func setPrefixScorer() {
 	ctx := context.Background()
 	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
 
-	if envutil.GetEnvString(pdFilterEnablementEnvVar, "false", loggerDebug) != "true" {
-		loggerDebug.Info("Skipping PDFilter creation as it is not enabled")
+	if envutil.GetEnvString(prefixScorerEnablementEnvVar, "false", loggerDebug) != "true" {
+		loggerDebug.Info("Skipping PrefixScorer creation as it is not enabled")
 		return
 	}
 
-	defaultConfig.filters = append(defaultConfig.filters, filter.PDFilter)
-	loggerDebug.Info("Initialized PDFilter")
+	prefixScorerWeight := envutil.GetEnvInt(prefixScorerWeightEnvVar, 1, loggerDebug)
+	prefixScorer := scorer.NewPrefixAwareScorer(nil)
+	defaultConfig.scorers[prefixScorer] = prefixScorerWeight // TODO: make configurable
+	defaultConfig.postResponsePlugins = append(defaultConfig.postResponsePlugins, prefixScorer)
+
+	loggerDebug.Info("Initialized PrefixAwareScorer", "weight", prefixScorerWeight)
 }

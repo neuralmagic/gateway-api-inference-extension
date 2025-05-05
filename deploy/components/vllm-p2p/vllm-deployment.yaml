@@ -31,13 +31,12 @@ spec:
             - "-c"
           args:
             - |
-              export LMCACHE_DISTRIBUTED_URL=$${${POD_IP}}:80 && \
+              export LMCACHE_DISTRIBUTED_URL=$${${POD_IP}} && \
               vllm serve ${MODEL_NAME} \
               --host 0.0.0.0 \
               --port 8000 \
-              --enable-chunked-prefill false \
               --max-model-len ${MAX_MODEL_LEN} \
-              --kv-transfer-config '{"kv_connector":"LMCacheConnector","kv_role":"kv_both"}'
+              --kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
           ports:
             - name: http
               containerPort: 8000
@@ -78,6 +77,10 @@ spec:
                 secretKeyRef:
                   name: ${HF_SECRET_NAME}
                   key: ${HF_SECRET_KEY}
+            - name: VLLM_ENABLE_V1_MULTIPROCESSING
+              value: "1"
+            - name: VLLM_WORKER_MULTIPROC_METHOD
+              value: spawn
             - name: LMCACHE_LOOKUP_URL
               value: ${REDIS_HOST}:${REDIS_PORT}
             - name: LMCACHE_ENABLE_DEBUG
