@@ -33,6 +33,7 @@ var prefillConfig = &SchedulerConfig{
 	scorers:             map[plugins.Scorer]int{},
 	picker:              picker.NewMaxScorePicker(),
 	postSchedulePlugins: []plugins.PostSchedule{},
+	postResponsePlugins: []plugins.PostResponse{},
 }
 var decodeConfig = &SchedulerConfig{
 	preSchedulePlugins:  []plugins.PreSchedule{},
@@ -40,6 +41,7 @@ var decodeConfig = &SchedulerConfig{
 	scorers:             map[plugins.Scorer]int{},
 	picker:              picker.NewMaxScorePicker(),
 	postSchedulePlugins: []plugins.PostSchedule{},
+	postResponsePlugins: []plugins.PostResponse{},
 }
 
 var PDEnabled = false
