@@ -23,7 +23,7 @@ import (
 // ////////////////////////////
 // Prefill filter
 var PrefillFilter = &baseFilter{
-	name:   "prefill filter",
+	name:   "prefill_filter",
 	filter: prefillFilterFunc,
 }
 
@@ -43,7 +43,7 @@ func prefillFilterFunc(ctx *types.SchedulingContext, pods []types.Pod) []types.P
 // ////////////////////////////
 // Decode filter
 var DecodeFilter = &baseFilter{
-	name:   "decode filter",
+	name:   "decode_filter",
 	filter: decodeFilterFunc,
 }
 
