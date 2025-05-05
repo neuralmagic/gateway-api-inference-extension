@@ -31,14 +31,15 @@ const (
 )
 
 func NewPDScheduler(datastore Datastore) *PDScheduler {
-	return NewPDSchedulerWithConfig(datastore, prefillConfig, decodeConfig)
+	return NewPDSchedulerWithConfig(datastore, prefillConfig, decodeConfig, defaultConfig)
 }
 
-func NewPDSchedulerWithConfig(datastore Datastore, prefillConfig *SchedulerConfig, decodeConfig *SchedulerConfig) *PDScheduler {
+func NewPDSchedulerWithConfig(datastore Datastore, pConfig *SchedulerConfig, dConfig *SchedulerConfig, defConfig *SchedulerConfig) *PDScheduler {
 	return &PDScheduler{
 		datastore:        datastore,
-		prefillScheduler: NewSchedulerWithConfig(datastore, prefillConfig),
-		decodeScheduler:  NewSchedulerWithConfig(datastore, decodeConfig),
+		prefillScheduler: NewSchedulerWithConfig(datastore, pConfig),
+		decodeScheduler:  NewSchedulerWithConfig(datastore, dConfig),
+		defaultScheduler: NewSchedulerWithConfig(datastore, defConfig),
 	}
 }
 
@@ -46,6 +47,7 @@ type PDScheduler struct {
 	datastore        Datastore
 	prefillScheduler *Scheduler
 	decodeScheduler  *Scheduler
+	defaultScheduler *Scheduler
 }
 
 // Schedule finds the target pod based on metrics and the requested lora adapter.
@@ -60,7 +62,7 @@ func (s *PDScheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*typ
 
 	if len(req.Prompt) < PromptLengthThreshold {
 		// prompt is short enough - use decode scheduling logic
-		return s.decodeScheduler.Schedule(ctx, req)
+		return s.defaultScheduler.Schedule(ctx, req)
 	}
 
 	pool, err := s.datastore.PoolGet()
