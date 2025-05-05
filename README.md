@@ -9,7 +9,7 @@ This project offers tools for AI Inference, enabling developers to build [Infere
 ---
 ## Temporary Fork Configuration
 
-To enable KVCacheAwareScorer, the following environment variables must be configured:
+To enable the KVCacheAwareScorer, the following environment variables must be configured:
 ```
 export ENABLE_KVCACHE_AWARE_SCORER=true
 export KVCACHE_AWARE_SCORER_WEIGHT=1.0
@@ -17,7 +17,7 @@ export KVCACHE_INDEXER_REDIS_ADDR=<redis-service>
 export HF_TOKEN=<HuggingFace Token that has access to the vLLM models>
 ```
 
-To enable LoadAwareScorer, the following environment variables must be configured:
+To enable the LoadAwareScorer, the following environment variables must be configured:
 ```
 export ENABLE_LOAD_AWARE_SCORER=true
 export LOAD_AWARE_SCORER_WEIGHT=1.0
