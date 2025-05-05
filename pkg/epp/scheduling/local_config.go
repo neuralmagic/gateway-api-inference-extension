@@ -29,12 +29,13 @@ import (
 const (
 	kvCacheScorerEnablementEnvVar      = "ENABLE_KVCACHE_AWARE_SCORER"
 	loadAwareScorerEnablementEnvVar    = "ENABLE_LOAD_AWARE_SCORER"
+	prefixScorerEnablementEnvVar       = "ENABLE_PREFIX_AWARE_SCORER"
 	sessionAwareScorerEnablementEnvVar = "ENABLE_SESSION_AWARE_SCORER"
 	pdFilterEnablementEnvVar           = "ENABLE_PD_FILTER"
 
 	kvCacheScorerWeightEnvVar      = "KVCACHE_AWARE_SCORER_WEIGHT"
 	loadAwareScorerWeightEnvVar    = "LOAD_AWARE_SCORER_WEIGHT"
-  prefixScorerWeightEnvVar       = "PREFIX_AWARE_SCORER_WEIGHT"
+	prefixScorerWeightEnvVar       = "PREFIX_AWARE_SCORER_WEIGHT"
 	sessionAwareScorerWeightEnvVar = "SESSION_AWARE_SCORER_WEIGHT"
 )
 
