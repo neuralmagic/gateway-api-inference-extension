@@ -42,7 +42,7 @@ var decodeConfig = &SchedulerConfig{
 	postSchedulePlugins: []plugins.PostSchedule{},
 }
 
-var IsPDEnabled = false
+var PDEnabled = false
 var PromptLengthThreshold int
 
 func init() {
@@ -53,7 +53,7 @@ func init() {
 	loadDecodeConfiguration(ctx, loggerDebug)
 
 	// set IsPDEnabled by environment
-	IsPDEnabled = getPDEnabledFromEnvironment(loggerDebug)
+	PDEnabled = getPDEnabledFromEnvironment(loggerDebug)
 	PromptLengthThreshold = getPDPromptLenThresholdFromEnvironment(loggerDebug)
 }
 

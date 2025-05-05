@@ -139,7 +139,7 @@ func (r *ExtProcServerRunner) AsRunnable(logger logr.Logger) manager.Runnable {
 		}
 
 		var scheduler handlers.Scheduler
-		if scheduling.IsPDEnabled {
+		if scheduling.PDEnabled {
 			scheduler = scheduling.NewPDScheduler(r.Datastore)
 		} else {
 			scheduler = scheduling.NewScheduler(r.Datastore)
