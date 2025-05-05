@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics" // Import config for thresholds
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
@@ -54,6 +55,28 @@ func TestPDSchedule(t *testing.T) {
 		},
 		Metrics: &backendmetrics.Metrics{},
 	}
+	wantPod1 := &types.PodMetrics{
+		Pod: &backendmetrics.Pod{
+			NamespacedName: k8stypes.NamespacedName{Name: "pod1"},
+			Address:        "1.2.3.4",
+			Role:           backendmetrics.Prefill,
+		},
+		Metrics: &backendmetrics.Metrics{
+			ActiveModels:  map[string]int{},
+			WaitingModels: map[string]int{},
+		},
+	}
+	wantPod2 := &types.PodMetrics{
+		Pod: &backendmetrics.Pod{
+			NamespacedName: k8stypes.NamespacedName{Name: "pod2"},
+			Address:        "5.6.7.8",
+			Role:           backendmetrics.Decode,
+		},
+		Metrics: &backendmetrics.Metrics{
+			ActiveModels:  map[string]int{},
+			WaitingModels: map[string]int{},
+		},
+	}
 
 	tests := []struct {
 		name    string
@@ -85,7 +108,7 @@ func TestPDSchedule(t *testing.T) {
 			input: []*backendmetrics.FakePodMetrics{pod1},
 			wantRes: &types.Result{
 				TargetPod: &types.ScoredPod{
-					Pod: pod1,
+					Pod: wantPod1,
 				},
 				MutatedHeaders: map[string]string{},
 			},
@@ -102,7 +125,8 @@ func TestPDSchedule(t *testing.T) {
 			input: []*backendmetrics.FakePodMetrics{pod1, pod2},
 			wantRes: &types.Result{
 				TargetPod: &types.ScoredPod{
-					Pod: pod2,
+					Pod:   wantPod2,
+					Score: 0.0,
 				},
 				MutatedHeaders: map[string]string{"x-prefiller-url": "http://1.2.3.4:0"},
 			},
@@ -122,34 +146,9 @@ func TestPDSchedule(t *testing.T) {
 				t.Errorf("Unexpected error, got %v, want %v", err, test.err)
 			}
 
-			if test.wantRes != nil && got != nil {
-				if !mapsEqual(test.wantRes.MutatedHeaders, got.MutatedHeaders) {
-					fmt.Printf("Mutated headers are not the same\n")
-					t.Errorf("Mutated headers are not the same\n")
-				}
-				if got.TargetPod.GetPod().String() != test.wantRes.TargetPod.GetPod().String() {
-					fmt.Printf("target pod is not the same\n")
-					fmt.Printf("wanted: %s\n", test.wantRes.TargetPod.String())
-					fmt.Printf("got: %s\n", got.TargetPod.String())
-					t.Errorf("Tager pod is not the same")
-				}
+			if diff := cmp.Diff(test.wantRes, got); diff != "" {
+				t.Errorf("Unexpected output (-want +got): %v", diff)
 			}
-
-			// if diff := cmp.Diff(test.wantRes, got); diff != "" {
-			// 	t.Errorf("Unexpected output (-want +got): %v", diff)
-			// }
 		})
 	}
-}
-
-func mapsEqual(a, b map[string]string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k, v := range a {
-		if bv, ok := b[k]; !ok || bv != v {
-			return false
-		}
-	}
-	return true
 }
