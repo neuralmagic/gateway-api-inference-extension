@@ -124,6 +124,7 @@ func (s *Scheduler) Schedule(ctx context.Context, req *types.LLMRequest) (*types
 
 	s.runPostSchedulePlugins(sCtx, result)
 
+	result.MutatedHeaders = sCtx.MutatedHeaders
 	return result, nil
 }
 

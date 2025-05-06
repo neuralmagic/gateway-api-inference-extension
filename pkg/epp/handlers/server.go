@@ -375,7 +375,7 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 	return nil
 }
 
-func (s *StreamingServer) populateRequestHeaderResponse(reqCtx *RequestContext, endpoint string, requestBodyLength int) {
+func (s *StreamingServer) populateRequestHeaderResponse(reqCtx *RequestContext, endpoint string, requestBodyLength int, mutatedHeaders map[string]string) {
 	headers := []*configPb.HeaderValueOption{
 		{
 			Header: &configPb.HeaderValue{
@@ -391,6 +391,15 @@ func (s *StreamingServer) populateRequestHeaderResponse(reqCtx *RequestContext, 
 			Header: &configPb.HeaderValue{
 				Key:      "Content-Length",
 				RawValue: []byte(strconv.Itoa(requestBodyLength)),
+			},
+		})
+	}
+	// Add headers added by filters/scorers
+	for key, value := range mutatedHeaders {
+		headers = append(headers, &configPb.HeaderValueOption{
+			Header: &configPb.HeaderValue{
+				Key:      key,
+				RawValue: []byte(value),
 			},
 		})
 	}

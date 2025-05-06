@@ -106,7 +106,7 @@ func (s *StreamingServer) HandleRequestBody(ctx context.Context, reqCtx *Request
 	reqCtx.TargetPod = targetPod.NamespacedName.String()
 	reqCtx.TargetEndpoint = endpoint
 
-	s.populateRequestHeaderResponse(reqCtx, endpoint, len(requestBodyBytes))
+	s.populateRequestHeaderResponse(reqCtx, endpoint, len(requestBodyBytes), res.MutatedHeaders)
 
 	reqCtx.reqBodyResp = &extProcPb.ProcessingResponse{
 		// The Endpoint Picker supports two approaches to communicating the target endpoint, as a request header
@@ -148,7 +148,7 @@ func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *Requ
 			return err
 		}
 		endpoint := pod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
-		s.populateRequestHeaderResponse(reqCtx, endpoint, 0)
+		s.populateRequestHeaderResponse(reqCtx, endpoint, 0, nil)
 		return nil
 	}
 
