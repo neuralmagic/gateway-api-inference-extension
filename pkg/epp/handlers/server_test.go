@@ -43,9 +43,11 @@ import (
 )
 
 const (
-	bufSize    = 1024 * 1024
-	podName    = "pod1"
-	podAddress = "1.2.3.4"
+	bufSize                    = 1024 * 1024
+	podName                    = "pod1"
+	podAddress                 = "1.2.3.4"
+	poolPort                   = int32(5678)
+	destinationEndpointHintKey = "test-target"
 )
 
 var testListener *bufconn.Listener
@@ -53,8 +55,6 @@ var testListener *bufconn.Listener
 func TestServer(t *testing.T) {
 	theHeaderValue := "body"
 	requestHeader := "x-test"
-	destinationEndpointHintKey := "test-target"
-	poolPort := int32(5678)
 
 	expectedRequestHeaders := map[string]string{
 		destinationEndpointHintKey: fmt.Sprintf("%s:%d", podAddress, poolPort), "x-test2": "123", "x-test3": "hello",
@@ -63,52 +63,8 @@ func TestServer(t *testing.T) {
 	expectedSchedulerHeaders := map[string]string{":method": "POST", requestHeader: theHeaderValue}
 
 	t.Run("server", func(t *testing.T) {
-		// Set up
-		testListener = bufconn.Listen(bufSize)
-
-		logger := klog.Background()
-		ctx := klog.NewContext(context.Background(), logger)
-		ctx, cancel := context.WithCancel(ctx)
 		scheduler := &testScheduler{}
-
-		pmf := metrics.NewPodMetricsFactory(&metrics.FakePodMetricsClient{}, time.Minute)
-		ds := datastore.NewDatastore(ctx, pmf)
-
-		tsModel := "food-review"
-		model1ts := testutil.MakeInferenceModel("model1").
-			CreationTimestamp(metav1.Unix(1000, 0)).
-			ModelName(tsModel).ObjRef()
-		ds.ModelSetIfOlder(model1ts)
-
-		ds.PodUpdateOrAddIfNotExist(&v1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: podName},
-		})
-
-		scheme := runtime.NewScheme()
-		_ = clientgoscheme.AddToScheme(scheme)
-		_ = v1alpha2.Install(scheme)
-		fakeClient := fake.NewClientBuilder().
-			WithScheme(scheme).
-			WithObjects(model1ts).
-			Build()
-		pool := testutil.MakeInferencePool("test-pool1").Namespace("ns1").ObjRef()
-		pool.Spec.TargetPortNumber = poolPort
-		_ = ds.PoolSet(context.Background(), fakeClient, pool)
-
-		streamingServer := NewStreamingServer(scheduler, "", destinationEndpointHintKey, ds)
-
-		errChan := make(chan error)
-
-		go func() {
-			err := launch(streamingServer, ctx, testListener)
-			if err != nil {
-				t.Error("Error launching listener", err)
-			}
-			errChan <- err
-		}()
-
-		time.Sleep(2 * time.Second)
-
+		ctx, cancel, errChan := setup(t, scheduler)
 		process, conn := getProcessClient(ctx, t)
 		defer conn.Close()
 
@@ -156,32 +112,7 @@ func TestServer(t *testing.T) {
 				responseReqHeaders.GetRequestHeaders().Response.HeaderMutation.SetHeaders == nil {
 				t.Error("Invalid request headers response")
 			} else {
-				headers := responseReqHeaders.GetRequestHeaders().Response.HeaderMutation.SetHeaders
-				for expectedKey, expectedValue := range expectedRequestHeaders {
-					found := false
-					for _, header := range headers {
-						if header.Header.Key == expectedKey {
-							if expectedValue != string(header.Header.RawValue) {
-								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue,
-									string(header.Header.RawValue))
-							}
-							found = true
-							break
-						}
-					}
-					if !found {
-						t.Errorf("Missing header %s", expectedKey)
-					}
-				}
-				for _, header := range headers {
-					expectedValue, ok := expectedRequestHeaders[header.Header.Key]
-					if !ok {
-						t.Errorf("Unexpected header %s", header.Header.Key)
-					} else if expectedValue != string(header.Header.RawValue) {
-						t.Errorf("Incorrect value for header %s, want %s got %s", header.Header.Key, expectedValue,
-							string(header.Header.RawValue))
-					}
-				}
+				checkHeaders(t, responseReqHeaders.GetRequestHeaders().Response, expectedRequestHeaders)
 			}
 		}
 
@@ -244,33 +175,7 @@ func TestServer(t *testing.T) {
 				response.GetResponseHeaders().Response.HeaderMutation.SetHeaders == nil {
 				t.Error("Invalid response")
 			} else {
-				headers := response.GetResponseHeaders().Response.HeaderMutation.SetHeaders
-				for expectedKey, expectedValue := range expectedResponseHeaders {
-					found := false
-					for _, header := range headers {
-						if header.Header.Key == expectedKey {
-							if expectedValue != string(header.Header.RawValue) {
-								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue,
-									string(header.Header.RawValue))
-							}
-							found = true
-							break
-						}
-					}
-					if !found {
-						t.Errorf("Missing header %s", expectedKey)
-					}
-				}
-
-				for _, header := range headers {
-					expectedValue, ok := expectedResponseHeaders[header.Header.Key]
-					if !ok {
-						t.Errorf("Unexpected header %s", header.Header.Key)
-					} else if expectedValue != string(header.Header.RawValue) {
-						t.Errorf("Incorrect value for header %s, want %s got %s", header.Header.Key, expectedValue,
-							string(header.Header.RawValue))
-					}
-				}
+				checkHeaders(t, response.GetResponseHeaders().Response, expectedResponseHeaders)
 			}
 		}
 
@@ -279,6 +184,52 @@ func TestServer(t *testing.T) {
 		testListener.Close()
 	})
 
+}
+
+func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel context.CancelFunc, errChan chan error) {
+	testListener = bufconn.Listen(bufSize)
+
+	logger := klog.Background()
+	ctx = klog.NewContext(context.Background(), logger)
+	ctx, cancel = context.WithCancel(ctx)
+
+	pmf := metrics.NewPodMetricsFactory(&metrics.FakePodMetricsClient{}, time.Minute)
+	ds := datastore.NewDatastore(ctx, pmf)
+
+	tsModel := "food-review"
+	model1ts := testutil.MakeInferenceModel("model1").
+		CreationTimestamp(metav1.Unix(1000, 0)).
+		ModelName(tsModel).ObjRef()
+	ds.ModelSetIfOlder(model1ts)
+
+	ds.PodUpdateOrAddIfNotExist(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: podName},
+	})
+
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = v1alpha2.Install(scheme)
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(model1ts).
+		Build()
+	pool := testutil.MakeInferencePool("test-pool1").Namespace("ns1").ObjRef()
+	pool.Spec.TargetPortNumber = poolPort
+	_ = ds.PoolSet(context.Background(), fakeClient, pool)
+
+	streamingServer := NewStreamingServer(scheduler, "", destinationEndpointHintKey, ds)
+
+	errChan = make(chan error)
+	go func() {
+		err := launch(streamingServer, ctx, testListener)
+		if err != nil {
+			t.Error("Error launching listener", err)
+		}
+		errChan <- err
+	}()
+
+	time.Sleep(2 * time.Second)
+	return
 }
 
 func testDialer(context.Context, string) (net.Conn, error) {
@@ -324,6 +275,36 @@ func launch(s *StreamingServer, ctx context.Context, listener net.Listener) erro
 	}
 
 	return nil
+}
+
+func checkHeaders(t *testing.T, response *pb.CommonResponse, expectedHeaders map[string]string) {
+	headers := response.HeaderMutation.SetHeaders
+	for expectedKey, expectedValue := range expectedHeaders {
+		found := false
+		for _, header := range headers {
+			if header.Header.Key == expectedKey {
+				if expectedValue != string(header.Header.RawValue) {
+					t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue,
+						string(header.Header.RawValue))
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Missing header %s", expectedKey)
+		}
+	}
+
+	for _, header := range headers {
+		expectedValue, ok := expectedHeaders[header.Header.Key]
+		if !ok {
+			t.Errorf("Unexpected header %s", header.Header.Key)
+		} else if expectedValue != string(header.Header.RawValue) {
+			t.Errorf("Incorrect value for header %s, want %s got %s", header.Header.Key, expectedValue,
+				string(header.Header.RawValue))
+		}
+	}
 }
 
 type testScheduler struct {
