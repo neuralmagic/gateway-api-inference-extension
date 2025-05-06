@@ -58,7 +58,7 @@ func TestServer(t *testing.T) {
 
 	expectedRequestHeaders := map[string]string{
 		destinationEndpointHintKey: fmt.Sprintf("%s:%d", podAddress, poolPort), "x-test2": "123", "x-test3": "hello",
-		"Content-Length": "51"}
+		"Content-Length": "42"}
 	expectedResponseHeaders := map[string]string{"x-went-into-resp-headers": "true", "x-test2": "123", "x-test3": "hello"}
 	expectedSchedulerHeaders := map[string]string{":method": "POST", requestHeader: theHeaderValue}
 
@@ -88,6 +88,7 @@ func TestServer(t *testing.T) {
 
 		// Send request body
 		requestBody := "{\"model\":\"food-review\",\"prompt\":\"Is banana tasty?\"}"
+		expectedBody := "{\"model\":\"v1\",\"prompt\":\"Is banana tasty?\"}"
 		request = &pb.ProcessingRequest{
 			Request: &pb.ProcessingRequest_RequestBody{
 				RequestBody: &pb.HttpBody{
@@ -128,8 +129,8 @@ func TestServer(t *testing.T) {
 				t.Error("Invalid request body response")
 			} else {
 				body := responseReqBody.GetRequestBody().Response.BodyMutation.GetStreamedResponse().Body
-				if string(body) != requestBody {
-					t.Errorf("Incorrect body %s expected %s", string(body), requestBody)
+				if string(body) != expectedBody {
+					t.Errorf("Incorrect body %s expected %s", string(body), expectedBody)
 				}
 			}
 		}
@@ -183,7 +184,6 @@ func TestServer(t *testing.T) {
 		<-errChan
 		testListener.Close()
 	})
-
 }
 
 func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel context.CancelFunc, errChan chan error) {
@@ -197,10 +197,20 @@ func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel conte
 	ds := datastore.NewDatastore(ctx, pmf)
 
 	tsModel := "food-review"
-	model1ts := testutil.MakeInferenceModel("model1").
-		CreationTimestamp(metav1.Unix(1000, 0)).
-		ModelName(tsModel).ObjRef()
-	ds.ModelSetIfOlder(model1ts)
+	model := &v1alpha2.InferenceModel{
+		Spec: v1alpha2.InferenceModelSpec{
+			TargetModels: []v1alpha2.TargetModel{
+				{
+					Name: "v1",
+				},
+			},
+			ModelName: tsModel,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Unix(1000, 0),
+		},
+	}
+	ds.ModelSetIfOlder(model)
 
 	ds.PodUpdateOrAddIfNotExist(&v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: podName},
@@ -211,7 +221,7 @@ func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel conte
 	_ = v1alpha2.Install(scheme)
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(model1ts).
+		WithObjects(model).
 		Build()
 	pool := testutil.MakeInferencePool("test-pool1").Namespace("ns1").ObjRef()
 	pool.Spec.TargetPortNumber = poolPort
