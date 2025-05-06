@@ -17,6 +17,12 @@ export KVCACHE_INDEXER_REDIS_ADDR=<redis-service>
 export HF_TOKEN=<HuggingFace Token that has access to the vLLM models>
 ```
 
+To enable the PrefixAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_PREFIX_AWARE_SCORER=true
+export PREFIX_AWARE_SCORER_WEIGHT=1.0
+```
+
 To enable the LoadAwareScorer, the following environment variables must be configured:
 ```
 export ENABLE_LOAD_AWARE_SCORER=true
