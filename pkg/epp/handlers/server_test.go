@@ -96,7 +96,16 @@ func TestServer(t *testing.T) {
 
 		streamingServer := NewStreamingServer(scheduler, "", destinationEndpointHintKey, ds)
 
-		go launch(streamingServer, ctx, testListener)
+		errChan := make(chan error)
+
+		go func() {
+			err := launch(streamingServer, ctx, testListener)
+			if err != nil {
+				t.Error("Error launching listener", err)
+			}
+			errChan <- err
+		}()
+
 		time.Sleep(2 * time.Second)
 
 		process, conn := getProcessClient(ctx, t)
@@ -122,8 +131,6 @@ func TestServer(t *testing.T) {
 
 		// Send request body
 		requestBody := "{\"model\":\"food-review\",\"prompt\":\"Is banana tasty?\"}"
-		expectedRequestBody := fmt.Sprint(requestBody)
-
 		request = &pb.ProcessingRequest{
 			Request: &pb.ProcessingRequest_RequestBody{
 				RequestBody: &pb.HttpBody{
@@ -177,8 +184,8 @@ func TestServer(t *testing.T) {
 				t.Error("Invalid request body response")
 			} else {
 				body := responseReqBody.GetRequestBody().Response.BodyMutation.GetStreamedResponse().Body
-				if string(body) != expectedRequestBody {
-					t.Errorf("Incorrect body %s expected %s", string(body), expectedRequestBody)
+				if string(body) != requestBody {
+					t.Errorf("Incorrect body %s expected %s", string(body), requestBody)
 				}
 			}
 		}
@@ -191,10 +198,8 @@ func TestServer(t *testing.T) {
 			got, ok := scheduler.requestHeaders[expectedKey]
 			if !ok {
 				t.Errorf("Missing header %s", expectedKey)
-			} else {
-				if got != expectedValue {
-					t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue, got)
-				}
+			} else if got != expectedValue {
+				t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue, got)
 			}
 		}
 
@@ -246,6 +251,7 @@ func TestServer(t *testing.T) {
 		}
 
 		cancel()
+		<-errChan
 		testListener.Close()
 	})
 
