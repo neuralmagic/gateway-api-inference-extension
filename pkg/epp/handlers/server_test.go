@@ -57,7 +57,8 @@ func TestServer(t *testing.T) {
 	poolPort := int32(5678)
 
 	expectedRequestHeaders := map[string]string{
-		destinationEndpointHintKey: fmt.Sprintf("%s:%d", podAddress, poolPort), "x-test2": "123", "x-test3": "hello"}
+		destinationEndpointHintKey: fmt.Sprintf("%s:%d", podAddress, poolPort), "x-test2": "123", "x-test3": "hello",
+		"Content-Length": "51"}
 	expectedResponseHeaders := map[string]string{"x-went-into-resp-headers": "true", "x-test2": "123", "x-test3": "hello"}
 	expectedSchedulerHeaders := map[string]string{":method": "POST", requestHeader: theHeaderValue}
 
@@ -149,7 +150,8 @@ func TestServer(t *testing.T) {
 		if err != nil {
 			t.Error("Error receiving response", err)
 		} else {
-			if responseReqHeaders == nil || responseReqHeaders.GetRequestHeaders() == nil || responseReqHeaders.GetRequestHeaders().Response == nil ||
+			if responseReqHeaders == nil || responseReqHeaders.GetRequestHeaders() == nil ||
+				responseReqHeaders.GetRequestHeaders().Response == nil ||
 				responseReqHeaders.GetRequestHeaders().Response.HeaderMutation == nil ||
 				responseReqHeaders.GetRequestHeaders().Response.HeaderMutation.SetHeaders == nil {
 				t.Error("Invalid request headers response")
@@ -160,7 +162,8 @@ func TestServer(t *testing.T) {
 					for _, header := range headers {
 						if header.Header.Key == expectedKey {
 							if expectedValue != string(header.Header.RawValue) {
-								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue, string(header.Header.RawValue))
+								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue,
+									string(header.Header.RawValue))
 							}
 							found = true
 							break
@@ -168,6 +171,15 @@ func TestServer(t *testing.T) {
 					}
 					if !found {
 						t.Errorf("Missing header %s", expectedKey)
+					}
+				}
+				for _, header := range headers {
+					expectedValue, ok := expectedRequestHeaders[header.Header.Key]
+					if !ok {
+						t.Errorf("Unexpected header %s", header.Header.Key)
+					} else if expectedValue != string(header.Header.RawValue) {
+						t.Errorf("Incorrect value for header %s, want %s got %s", header.Header.Key, expectedValue,
+							string(header.Header.RawValue))
 					}
 				}
 			}
@@ -178,7 +190,8 @@ func TestServer(t *testing.T) {
 		if err != nil {
 			t.Error("Error receiving response", err)
 		} else {
-			if responseReqBody == nil || responseReqBody.GetRequestBody() == nil || responseReqBody.GetRequestBody().Response == nil ||
+			if responseReqBody == nil || responseReqBody.GetRequestBody() == nil ||
+				responseReqBody.GetRequestBody().Response == nil ||
 				responseReqBody.GetRequestBody().Response.BodyMutation == nil ||
 				responseReqBody.GetRequestBody().Response.BodyMutation.GetStreamedResponse() == nil {
 				t.Error("Invalid request body response")
@@ -237,7 +250,8 @@ func TestServer(t *testing.T) {
 					for _, header := range headers {
 						if header.Header.Key == expectedKey {
 							if expectedValue != string(header.Header.RawValue) {
-								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue, string(header.Header.RawValue))
+								t.Errorf("Incorrect value for header %s, want %s got %s", expectedKey, expectedValue,
+									string(header.Header.RawValue))
 							}
 							found = true
 							break
@@ -245,6 +259,16 @@ func TestServer(t *testing.T) {
 					}
 					if !found {
 						t.Errorf("Missing header %s", expectedKey)
+					}
+				}
+
+				for _, header := range headers {
+					expectedValue, ok := expectedResponseHeaders[header.Header.Key]
+					if !ok {
+						t.Errorf("Unexpected header %s", header.Header.Key)
+					} else if expectedValue != string(header.Header.RawValue) {
+						t.Errorf("Incorrect value for header %s, want %s got %s", header.Header.Key, expectedValue,
+							string(header.Header.RawValue))
 					}
 				}
 			}
