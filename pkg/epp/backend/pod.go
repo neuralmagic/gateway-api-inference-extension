@@ -19,10 +19,22 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// PodRole defines the type of functionality of the Pod
+type PodRole int
+
+// Defined Pod roles
+const (
+	Prefill PodRole = iota // Prefill only
+	Decode                 // Decode only
+	Both                   // Both prefill and decode
+	Unknown
+)
+
 type Pod struct {
 	NamespacedName types.NamespacedName
 	Address        string
 	Labels         map[string]string
+	Role           PodRole
 }
 
 func (p *Pod) String() string {
@@ -43,5 +55,6 @@ func (p *Pod) Clone() *Pod {
 		},
 		Address: p.Address,
 		Labels:  p.Labels,
+		Role:    p.Role,
 	}
 }

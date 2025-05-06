@@ -33,6 +33,7 @@ import (
 
 const (
 	fetchMetricsTimeout = 5 * time.Second
+	roleLabel           = "llm-d.ai/role"
 )
 
 type podMetrics struct {
@@ -76,6 +77,30 @@ func toInternalPod(in *corev1.Pod) *backend.Pod {
 		},
 		Address: in.Status.PodIP,
 		Labels:  in.Labels,
+		Role:    podLabelToRole(in.Labels[roleLabel]),
+	}
+}
+
+func podLabelToRole(role string) backend.PodRole {
+	const (
+		rolePrefill = "prefill"
+		roleDecode  = "decode"
+		roleBoth    = "both"
+	)
+
+	if role == "" {
+		return backend.Both
+	}
+
+	switch roleLabel {
+	case rolePrefill:
+		return backend.Prefill
+	case roleDecode:
+		return backend.Decode
+	case roleBoth:
+		return backend.Both
+	default:
+		return backend.Unknown
 	}
 }
 
