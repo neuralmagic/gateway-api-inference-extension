@@ -73,10 +73,14 @@ func (s *PrefixAwareScorer) Score(ctx *types.SchedulingContext, pods []types.Pod
 	return indexedScoresToNormalizedScoredPods(pods, podToKey, scores)
 }
 
-// PostResponse implements the PostResponsePlugin interface.
+// PostSchedule implements the PostSchedulePlugin interface.
 // It adds the prefix to the PrefixStore for the given pod.
-func (s *PrefixAwareScorer) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
-	debugLogger := log.FromContext(ctx).WithName(prefixAwareScorerName).V(logutil.DEBUG)
+// TODO: switch to PostResponse.
+func (s *PrefixAwareScorer) PostSchedule(ctx *types.SchedulingContext, res *types.Result) {
+	pod := res.TargetPod
+
+	debugLogger := log.FromContext(ctx).WithName(prefixAwareScorerName)
+	debugLogger.Info("PostResponse called", "req", ctx.Req, "pod", pod)
 
 	if ctx.Req == nil {
 		debugLogger.Info("Request is nil, skipping PostResponse")
