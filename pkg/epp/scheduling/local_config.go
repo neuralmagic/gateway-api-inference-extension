@@ -117,7 +117,7 @@ func setPrefixScorer() {
 	prefixScorerWeight := envutil.GetEnvInt(prefixScorerWeightEnvVar, 1, loggerDebug)
 	prefixScorer := scorer.NewPrefixAwareScorer(nil)
 	defaultConfig.scorers[prefixScorer] = prefixScorerWeight // TODO: make configurable
-	defaultConfig.postResponsePlugins = append(defaultConfig.postResponsePlugins, prefixScorer)
+	defaultConfig.postSchedulePlugins = append(defaultConfig.postSchedulePlugins, prefixScorer)
 
 	loggerDebug.Info("Initialized PrefixAwareScorer", "weight", prefixScorerWeight)
 }
