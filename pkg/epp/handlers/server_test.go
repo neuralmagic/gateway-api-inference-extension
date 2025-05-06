@@ -186,12 +186,12 @@ func TestServer(t *testing.T) {
 	})
 }
 
-func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel context.CancelFunc, errChan chan error) {
+func setup(t *testing.T, scheduler Scheduler) (context.Context, context.CancelFunc, chan error) {
 	testListener = bufconn.Listen(bufSize)
 
 	logger := klog.Background()
-	ctx = klog.NewContext(context.Background(), logger)
-	ctx, cancel = context.WithCancel(ctx)
+	ctx := klog.NewContext(context.Background(), logger)
+	ctx, cancel := context.WithCancel(ctx)
 
 	pmf := metrics.NewPodMetricsFactory(&metrics.FakePodMetricsClient{}, time.Minute)
 	ds := datastore.NewDatastore(ctx, pmf)
@@ -229,7 +229,7 @@ func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel conte
 
 	streamingServer := NewStreamingServer(scheduler, "", destinationEndpointHintKey, ds)
 
-	errChan = make(chan error)
+	errChan := make(chan error)
 	go func() {
 		err := launch(streamingServer, ctx, testListener)
 		if err != nil {
@@ -239,7 +239,7 @@ func setup(t *testing.T, scheduler Scheduler) (ctx context.Context, cancel conte
 	}()
 
 	time.Sleep(2 * time.Second)
-	return
+	return ctx, cancel, errChan
 }
 
 func testDialer(context.Context, string) (net.Conn, error) {
