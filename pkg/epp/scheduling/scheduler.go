@@ -212,7 +212,7 @@ func (s *Scheduler) runPostSchedulePlugins(ctx *types.SchedulingContext, res *ty
 
 // OnResponse is invoked during the processing of a response from an inference pod. It will invoke
 // any defined plugins that process the response.
-func (s *Scheduler) OnResponse(ctx context.Context, req *types.LLMRequest, targetPodName string) (*types.Result, error) {
+func (s *Scheduler) OnResponse(ctx context.Context, resp *types.LLMResponse, targetPodName string) (*types.Result, error) {
 	// Snapshot pod metrics from the datastore to:
 	// 1. Reduce concurrent access to the datastore.
 	// 2. Ensure consistent data during the scheduling operation of a request.
@@ -225,7 +225,7 @@ func (s *Scheduler) OnResponse(ctx context.Context, req *types.LLMRequest, targe
 		}
 	}
 
-	sCtx := types.NewSchedulingContext(ctx, req, pods)
+	sCtx := types.NewSchedulingContext(ctx, nil, resp, pods)
 
 	s.runPostResponsePlugins(sCtx, targetPod)
 
