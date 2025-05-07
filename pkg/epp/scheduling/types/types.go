@@ -45,6 +45,21 @@ func (r *LLMRequest) String() string {
 		r.Model, r.ResolvedTargetModel, r.Critical, len(r.Prompt), r.Headers)
 }
 
+// LLMResponse contains information from the response received to be passed to plugins
+type LLMResponse struct {
+	// Headers is a map of the response headers. Nil during body processing
+	Headers map[string]string
+
+	// Body Is the body of the response or nil during header processing
+	Body string
+
+	// IsStreaming indicates whether or not the response is being streamed by the model
+	IsSreaming bool
+
+	// EndOfStream when true indicates that this invocation contains the last chunk of the response
+	EndOfStream bool
+}
+
 type Pod interface {
 	GetPod() *backend.Pod
 	GetMetrics() *backendmetrics.Metrics
@@ -61,6 +76,7 @@ type SchedulingContext struct {
 	context.Context
 	Logger         logr.Logger
 	Req            *LLMRequest
+	Resp           *LLMResponse
 	PodsSnapshot   []Pod
 	MutatedHeaders map[string]string
 }
@@ -85,12 +101,13 @@ type PodMetrics struct {
 	*backendmetrics.Metrics
 }
 
-func NewSchedulingContext(ctx context.Context, req *LLMRequest, pods []Pod) *SchedulingContext {
+func NewSchedulingContext(ctx context.Context, req *LLMRequest, resp *LLMResponse, pods []Pod) *SchedulingContext {
 	logger := log.FromContext(ctx).WithValues("request", req)
 	return &SchedulingContext{
 		Context:        ctx,
 		Logger:         logger,
 		Req:            req,
+		Resp:           resp,
 		PodsSnapshot:   pods,
 		MutatedHeaders: make(map[string]string),
 	}
