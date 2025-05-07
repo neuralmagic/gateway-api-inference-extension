@@ -501,12 +501,11 @@ func TestPostResponse(t *testing.T) {
 	for _, test := range tests {
 		scheduler := NewSchedulerWithConfig(&fakeDataStore{pods: test.input}, &test.config)
 
-		req := &types.LLMRequest{
-			Model:   "test-model",
+		resp := &types.LLMResponse{
 			Headers: test.responseHeaders,
 		}
 
-		result, err := scheduler.OnResponse(context.Background(), req, targetPod.String())
+		result, err := scheduler.OnResponse(context.Background(), resp, targetPod.String())
 		if err != nil {
 			t.Errorf("Received an error. Error: %s", err)
 		}
@@ -610,7 +609,7 @@ type testPostResponse struct {
 func (pr *testPostResponse) Name() string { return pr.NameRes }
 
 func (pr *testPostResponse) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
-	for key, value := range ctx.Req.Headers {
+	for key, value := range ctx.Resp.Headers {
 		pr.ReceivedResponseHeaders[key] = value
 	}
 	for key, value := range pr.ExtraHeaders {
