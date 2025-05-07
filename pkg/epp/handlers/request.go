@@ -79,9 +79,15 @@ func (s *StreamingServer) HandleRequestBody(
 	if llmReq.Model != llmReq.ResolvedTargetModel {
 		requestBodyMap["model"] = llmReq.ResolvedTargetModel
 	}
-	// Extract prompt from the request body.
+	// Extract prompt/messages from the request body.
 	if prompt, ok := requestBodyMap["prompt"].(string); ok {
 		llmReq.Prompt = prompt
+	} else if _, ok := requestBodyMap["messages"]; ok { // check for chat completion request
+		if chatRequest, err := schedulingtypes.NewKVCacheChatCompletionRequest(requestBodyMap); err == nil {
+			llmReq.ChatCompletionRequest = chatRequest
+		} else {
+			logger.Error(err, "Error creating chat completion request")
+		}
 	}
 
 	requestBodyBytes, err = json.Marshal(requestBodyMap)
