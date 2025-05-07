@@ -67,6 +67,7 @@ type StreamingServer struct {
 
 type Scheduler interface {
 	Schedule(ctx context.Context, b *schedulingtypes.LLMRequest) (result *schedulingtypes.Result, err error)
+	OnResponse(ctx context.Context, req *schedulingtypes.LLMRequest, tragetPodName string) (*schedulingtypes.Result, error)
 }
 
 // RequestContext stores context information during the life time of an HTTP request.
@@ -203,6 +204,7 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 		case *extProcPb.ProcessingRequest_RequestTrailers:
 			// This is currently unused.
 		case *extProcPb.ProcessingRequest_ResponseHeaders:
+			responseHeaders := make(map[string]string)
 			for _, header := range v.ResponseHeaders.Headers.GetHeaders() {
 				value := string(header.RawValue)
 
@@ -213,26 +215,52 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 					reqCtx.modelServerStreaming = true
 					loggerTrace.Info("model server is streaming response")
 				}
+				responseHeaders[header.Key] = value
 			}
-			reqCtx.RequestState = ResponseRecieved
-			reqCtx.respHeaderResp = &extProcPb.ProcessingResponse{
-				Response: &extProcPb.ProcessingResponse_ResponseHeaders{
-					ResponseHeaders: &extProcPb.HeadersResponse{
-						Response: &extProcPb.CommonResponse{
-							HeaderMutation: &extProcPb.HeaderMutation{
-								SetHeaders: []*configPb.HeaderValueOption{
-									{
-										Header: &configPb.HeaderValue{
-											// This is for debugging purpose only.
-											Key:      "x-went-into-resp-headers",
-											RawValue: []byte("true"),
-										},
-									},
+
+			llmReq := &schedulingtypes.LLMRequest{
+				Model:               reqCtx.Model,
+				Headers:             responseHeaders,
+				ResolvedTargetModel: reqCtx.ResolvedTargetModel,
+			}
+
+			var result *schedulingtypes.Result
+			result, err = s.scheduler.OnResponse(ctx, llmReq, reqCtx.TargetPod)
+			if err != nil {
+				logger.V(logutil.DEFAULT).Error(err, "Error handling response")
+				reqCtx.ResponseStatusCode = errutil.ModelServerError
+			} else {
+				headers := []*configPb.HeaderValueOption{
+					{
+						Header: &configPb.HeaderValue{
+							// This is for debugging purpose only.
+							Key:      "x-went-into-resp-headers",
+							RawValue: []byte("true"),
+						},
+					},
+				}
+
+				// Add headers added by PostResponse
+				for key, value := range result.MutatedHeaders {
+					headers = append(headers, &configPb.HeaderValueOption{
+						Header: &configPb.HeaderValue{
+							Key:      key,
+							RawValue: []byte(value),
+						},
+					})
+				}
+				reqCtx.RequestState = ResponseRecieved
+				reqCtx.respHeaderResp = &extProcPb.ProcessingResponse{
+					Response: &extProcPb.ProcessingResponse_ResponseHeaders{
+						ResponseHeaders: &extProcPb.HeadersResponse{
+							Response: &extProcPb.CommonResponse{
+								HeaderMutation: &extProcPb.HeaderMutation{
+									SetHeaders: headers,
 								},
 							},
 						},
 					},
-				},
+				}
 			}
 
 		case *extProcPb.ProcessingRequest_ResponseBody:
