@@ -66,12 +66,20 @@ func init() {
 
 func loadPrefillConfiguration(ctx context.Context, logger logr.Logger) {
 	// add scorers
-	addScorerByEnvironment(ctx, prefillConfig, kvCacheAwareScorerName, kvCacheScorerEnablementEnvVar, kvCacheScorerWeightEnvVar, logger)
-	addScorerByEnvironment(ctx, prefillConfig, loadAwareScorerName, loadAwareScorerEnablementEnvVar, loadAwareScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, prefillConfig, kvCacheAwareScorerName, prefillKvCacheScorerEnablementEnvVar,
+		prefillKvCacheScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, prefillConfig, loadAwareScorerName, prefillLoadAwareScorerEnablementEnvVar,
+		prefillLoadAwareScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, prefillConfig, prefixAwareScorerName, prefillPrefixScorerEnablementEnvVar,
+		prefillPrefixScorerWeightEnvVar, logger)
 }
 
 func loadDecodeConfiguration(ctx context.Context, logger logr.Logger) {
 	// add scorers
-	addScorerByEnvironment(ctx, decodeConfig, kvCacheAwareScorerName, kvCacheScorerEnablementEnvVar, kvCacheScorerWeightEnvVar, logger)
-	addScorerByEnvironment(ctx, decodeConfig, loadAwareScorerName, loadAwareScorerEnablementEnvVar, loadAwareScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, decodeConfig, kvCacheAwareScorerName, decodeKvCacheScorerEnablementEnvVar,
+		decodeKvCacheScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, decodeConfig, loadAwareScorerName, decodeLoadAwareScorerEnablementEnvVar,
+		decodeLoadAwareScorerWeightEnvVar, logger)
+	addScorerByEnvironment(ctx, decodeConfig, prefixAwareScorerName, decodePrefixScorerEnablementEnvVar,
+		decodePrefixScorerWeightEnvVar, logger)
 }
