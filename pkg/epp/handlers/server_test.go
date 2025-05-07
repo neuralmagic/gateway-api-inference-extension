@@ -48,6 +48,7 @@ const (
 	podAddress                 = "1.2.3.4"
 	poolPort                   = int32(5678)
 	destinationEndpointHintKey = "test-target"
+	namespace                  = "ns1"
 )
 
 var testListener *bufconn.Listener
@@ -64,7 +65,8 @@ func TestServer(t *testing.T) {
 
 	t.Run("server", func(t *testing.T) {
 		scheduler := &testScheduler{}
-		ctx, cancel, errChan := setup(t, scheduler)
+		ctx, cancel, ds, _ := setupContextAndDatastore()
+		errChan := setupServer(t, ctx, ds, scheduler)
 		process, conn := getProcessClient(ctx, t)
 		defer conn.Close()
 
@@ -186,14 +188,13 @@ func TestServer(t *testing.T) {
 	})
 }
 
-func setup(t *testing.T, scheduler Scheduler) (context.Context, context.CancelFunc, chan error) {
-	testListener = bufconn.Listen(bufSize)
-
+func setupContextAndDatastore() (context.Context, context.CancelFunc, datastore.Datastore, *metrics.FakePodMetricsClient) {
 	logger := klog.Background()
 	ctx := klog.NewContext(context.Background(), logger)
 	ctx, cancel := context.WithCancel(ctx)
 
-	pmf := metrics.NewPodMetricsFactory(&metrics.FakePodMetricsClient{}, time.Minute)
+	pmc := &metrics.FakePodMetricsClient{}
+	pmf := metrics.NewPodMetricsFactory(pmc, time.Minute)
 	ds := datastore.NewDatastore(ctx, pmf)
 
 	tsModel := "food-review"
@@ -223,9 +224,15 @@ func setup(t *testing.T, scheduler Scheduler) (context.Context, context.CancelFu
 		WithScheme(scheme).
 		WithObjects(model).
 		Build()
-	pool := testutil.MakeInferencePool("test-pool1").Namespace("ns1").ObjRef()
+	pool := testutil.MakeInferencePool("test-pool1").Namespace(namespace).ObjRef()
 	pool.Spec.TargetPortNumber = poolPort
 	_ = ds.PoolSet(context.Background(), fakeClient, pool)
+
+	return ctx, cancel, ds, pmc
+}
+
+func setupServer(t *testing.T, ctx context.Context, ds datastore.Datastore, scheduler Scheduler) chan error {
+	testListener = bufconn.Listen(bufSize)
 
 	streamingServer := NewStreamingServer(scheduler, "", destinationEndpointHintKey, ds)
 
@@ -239,7 +246,7 @@ func setup(t *testing.T, scheduler Scheduler) (context.Context, context.CancelFu
 	}()
 
 	time.Sleep(2 * time.Second)
-	return ctx, cancel, errChan
+	return errChan
 }
 
 func testDialer(context.Context, string) (net.Conn, error) {
