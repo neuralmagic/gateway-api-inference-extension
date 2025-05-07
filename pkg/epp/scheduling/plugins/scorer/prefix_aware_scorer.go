@@ -54,7 +54,14 @@ func (s *PrefixAwareScorer) Score(ctx *types.SchedulingContext, pods []types.Pod
 		return nil
 	}
 
-	scores := s.prefixStore.FindMatchingPods(ctx.Req.Prompt, ctx.Req.Model)
+	var prompt string
+	if ctx.Req.ChatCompletionRequest != nil {
+		prompt = ctx.Req.ChatCompletionRequest.ToString()
+	} else {
+		prompt = ctx.Req.Prompt
+	}
+
+	scores := s.prefixStore.FindMatchingPods(prompt, ctx.Req.Model)
 	loggerDebug.Info("Got pod scores", "scores", scores)
 
 	if len(scores) == 0 {
@@ -92,7 +99,14 @@ func (s *PrefixAwareScorer) PostSchedule(ctx *types.SchedulingContext, res *type
 		return
 	}
 
-	if err := s.prefixStore.AddEntry(ctx.Req.Model, ctx.Req.Prompt, &pod.GetPod().NamespacedName); err != nil {
+	var prompt string
+	if ctx.Req.ChatCompletionRequest != nil {
+		prompt = ctx.Req.ChatCompletionRequest.ToString()
+	} else {
+		prompt = ctx.Req.Prompt
+	}
+
+	if err := s.prefixStore.AddEntry(ctx.Req.Model, prompt, &pod.GetPod().NamespacedName); err != nil {
 		debugLogger.Error(err, "Failed to add entry to prefix store", "req", ctx.Req, "pod", pod)
 		return
 	}

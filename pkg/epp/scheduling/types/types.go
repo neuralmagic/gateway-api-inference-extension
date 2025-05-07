@@ -27,8 +27,9 @@ import (
 
 // LLMRequest is a structured representation of the fields we parse out of the LLMRequest body.
 type LLMRequest struct {
-	Model  string
-	Prompt string
+	Model                 string
+	Prompt                string
+	ChatCompletionRequest *KVCacheChatCompletionRequest
 	// Target models is a map of target model name to weight.
 	TargetModels map[string]int
 	Headers      map[string]string
@@ -39,7 +40,13 @@ type LLMRequest struct {
 }
 
 func (r *LLMRequest) String() string {
-	return fmt.Sprintf("Model: %s, TargetModels: %v, ResolvedTargetModel: %s, Critical: %t, PromptLength: %v", r.Model, r.TargetModels, r.ResolvedTargetModel, r.Critical, len(r.Prompt))
+	promptLength := len(r.Prompt)
+	if r.ChatCompletionRequest != nil {
+		promptLength = len(r.ChatCompletionRequest.ToString())
+	}
+
+	return fmt.Sprintf("Model: %s, TargetModels: %v, ResolvedTargetModel: %s, Critical: %t, PromptLength: %v",
+		r.Model, r.TargetModels, r.ResolvedTargetModel, r.Critical, promptLength)
 }
 
 type Pod interface {
