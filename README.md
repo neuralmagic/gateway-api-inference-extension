@@ -59,6 +59,12 @@ export PREFILL_ENABLE_LOAD_AWARE_SCORER=true
 export PREFILL_LOAD_AWARE_SCORER_WEIGHT=1.0
 ```
 
+To enable and configure the prefix aware scorer for prefill, the following environment variables must be configured:
+```
+export PREFILL_ENABLE_PREFIX_AWARE_SCORER=true
+export PREFILL_PREFIX_AWARE_SCORER_WEIGHT=1.0
+```
+
 Decode configuration:
 
 To enable and configure the kv cache scorer for decode, the following environment variables must be configured:
@@ -71,6 +77,12 @@ To enable and configure the load aware scorer for decode, the following environm
 ```
 export DECODE_ENABLE_LOAD_AWARE_SCORER=true
 export DECODE_LOAD_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure the prefix aware scorer for decode, the following environment variables must be configured:
+```
+export DECODE_ENABLE_PREFIX_AWARE_SCORER=true
+export DECODE_PREFIX_AWARE_SCORER_WEIGHT=1.0
 ```
 ---
 [Inference Gateways]:#concepts-and-definitions

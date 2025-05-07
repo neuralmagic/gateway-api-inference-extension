@@ -29,13 +29,17 @@ import (
 const (
 	prefillKvCacheScorerEnablementEnvVar   = "PREFILL_ENABLE_KVCACHE_AWARE_SCORER"
 	prefillLoadAwareScorerEnablementEnvVar = "PREFILL_ENABLE_LOAD_AWARE_SCORER"
+	prefillPrefixScorerEnablementEnvVar    = "PREFILL_ENABLE_PREFIX_AWARE_SCORER"
 	decodeKvCacheScorerEnablementEnvVar    = "DECODE_ENABLE_KVCACHE_AWARE_SCORER"
 	decodeLoadAwareScorerEnablementEnvVar  = "DECODE_ENABLE_LOAD_AWARE_SCORER"
+	decodePrefixScorerEnablementEnvVar     = "DECODE_ENABLE_PREFIX_AWARE_SCORER"
 
 	prefillKvCacheScorerWeightEnvVar   = "PREFILL_KVCACHE_AWARE_SCORER_WEIGHT"
 	prefillLoadAwareScorerWeightEnvVar = "PREFILL_LOAD_AWARE_SCORER_WEIGHT"
+	prefillPrefixScorerWeightEnvVar    = "PREFILL_PREFIX_AWARE_SCORER_WEIGHT"
 	decodeKvCacheScorerWeightEnvVar    = "DECODE_KVCACHE_AWARE_SCORER_WEIGHT"
 	decodeLoadAwareScorerWeightEnvVar  = "DECODE_LOAD_AWARE_SCORER_WEIGHT"
+	decodePrefixScorerWeightEnvVar     = "DECODE_PREFIX_AWARE_SCORER_WEIGHT"
 
 	pdEnabledEnvKey = "PD_ENABLED"
 
@@ -46,6 +50,7 @@ const (
 const (
 	loadAwareScorerName    = "LoadAwareScorer"
 	kvCacheAwareScorerName = "KVCacheAwareScorer"
+	prefixAwareScorerName  = "PrefixAwareScorer"
 )
 
 func addScorerByEnvironment(ctx context.Context, config *SchedulerConfig, scorerName string, scorerEnabledEnvKey string, weightEnvKey string, logger logr.Logger) {
