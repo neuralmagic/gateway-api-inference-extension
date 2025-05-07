@@ -194,7 +194,7 @@ func setupContextAndDatastore() (context.Context, context.CancelFunc, datastore.
 	ctx, cancel := context.WithCancel(ctx)
 
 	pmc := &metrics.FakePodMetricsClient{}
-	pmf := metrics.NewPodMetricsFactory(pmc, time.Minute)
+	pmf := metrics.NewPodMetricsFactory(pmc, time.Second)
 	ds := datastore.NewDatastore(ctx, pmf)
 
 	tsModel := "food-review"
