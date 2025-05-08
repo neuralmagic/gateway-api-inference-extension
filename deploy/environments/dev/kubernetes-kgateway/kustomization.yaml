@@ -9,7 +9,7 @@ resources:
 - gateway-parameters.yaml
 
 images:
-- name: quay.io/llm-d/gateway-api-inference-extension
+- name: quay.io/llm-d/gateway-api-inference-extension/epp
   newName: ${EPP_IMAGE}
   newTag: ${EPP_TAG}
 

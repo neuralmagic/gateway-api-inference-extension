@@ -483,6 +483,56 @@ func TestSchedulePlugins(t *testing.T) {
 	}
 }
 
+func TestPostResponse(t *testing.T) {
+	pr1 := &testPostResponse{
+		NameRes:                 "pr1",
+		ExtraHeaders:            map[string]string{"x-session-id": "qwer-asdf-zxcv"},
+		ReceivedResponseHeaders: make(map[string]string),
+	}
+
+	tests := []struct {
+		name               string
+		config             SchedulerConfig
+		input              []*backendmetrics.FakePodMetrics
+		responseHeaders    map[string]string
+		wantMutatedHeaders map[string]string
+	}{
+		{
+			name: "Simple postResponse test",
+			config: SchedulerConfig{
+				postResponsePlugins: []plugins.PostResponse{pr1},
+			},
+			input: []*backendmetrics.FakePodMetrics{
+				{Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "pod1"}}},
+			},
+			responseHeaders:    map[string]string{"Content-type": "application/json", "Content-Length": "1234"},
+			wantMutatedHeaders: map[string]string{"x-session-id": "qwer-asdf-zxcv"},
+		},
+	}
+
+	for _, test := range tests {
+		scheduler := NewSchedulerWithConfig(&fakeDataStore{pods: test.input}, &test.config)
+
+		req := &types.LLMRequest{
+			Model:   "test-model",
+			Headers: test.responseHeaders,
+		}
+
+		result, err := scheduler.RunPostResponsePlugins(context.Background(), req, test.input[0].Pod.NamespacedName.String())
+		if err != nil {
+			t.Errorf("Received an error. Error: %s", err)
+		}
+
+		if diff := cmp.Diff(test.responseHeaders, pr1.ReceivedResponseHeaders); diff != "" {
+			t.Errorf("Unexpected output (-responseHeaders +ReceivedResponseHeaders): %v", diff)
+		}
+
+		if diff := cmp.Diff(test.wantMutatedHeaders, result.MutatedHeaders); diff != "" {
+			t.Errorf("Unexpected output (-wantedMutatedHeaders +MutatedHeaders): %v", diff)
+		}
+	}
+}
+
 type fakeDataStore struct {
 	pods []*backendmetrics.FakePodMetrics
 }
@@ -569,6 +619,23 @@ func (tp *TestPlugin) reset() {
 	tp.PostScheduleCallCount = 0
 	tp.PickCallCount = 0
 	tp.NumOfPickerCandidates = 0
+}
+
+type testPostResponse struct {
+	NameRes                 string
+	ReceivedResponseHeaders map[string]string
+	ExtraHeaders            map[string]string
+}
+
+func (pr *testPostResponse) Name() string { return pr.NameRes }
+
+func (pr *testPostResponse) PostResponse(ctx *types.SchedulingContext, pod types.Pod) {
+	for key, value := range ctx.Req.Headers {
+		pr.ReceivedResponseHeaders[key] = value
+	}
+	for key, value := range pr.ExtraHeaders {
+		ctx.MutatedHeaders[key] = value
+	}
 }
 
 func findPods(ctx *types.SchedulingContext, names ...k8stypes.NamespacedName) []types.Pod {

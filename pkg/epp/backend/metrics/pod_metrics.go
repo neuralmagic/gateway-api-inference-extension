@@ -32,7 +32,7 @@ import (
 
 const (
 	fetchMetricsTimeout = 5 * time.Second
-	roleLabel           = "llmd.org/role"
+	roleLabel           = "llm-d.ai/role"
 	rolePrefill         = "prefill"
 	roleDecode          = "decode"
 	roleBoth            = "both"

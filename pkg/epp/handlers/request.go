@@ -31,6 +31,8 @@ import (
 	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
+const emptyPrompt = ""
+
 // HandleRequestBody always returns the requestContext even in the error case, as the request context is used in error handling.
 func (s *StreamingServer) HandleRequestBody(
 	ctx context.Context,
@@ -68,6 +70,7 @@ func (s *StreamingServer) HandleRequestBody(
 		Headers:             reqCtx.RequestHeaders,
 		ResolvedTargetModel: modelName,
 		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
+		Prompt:              emptyPrompt,
 	}
 	logger.V(logutil.DEBUG).Info("LLM request assembled", "request", llmReq)
 
@@ -75,6 +78,16 @@ func (s *StreamingServer) HandleRequestBody(
 	// Update target models in the body.
 	if llmReq.Model != llmReq.ResolvedTargetModel {
 		requestBodyMap["model"] = llmReq.ResolvedTargetModel
+	}
+	// Extract prompt/messages from the request body.
+	if prompt, ok := requestBodyMap["prompt"].(string); ok {
+		llmReq.Prompt = prompt
+	} else if _, ok := requestBodyMap["messages"]; ok { // check for chat completion request
+		if chatRequest, err := schedulingtypes.NewKVCacheChatCompletionRequest(requestBodyMap); err == nil {
+			llmReq.ChatCompletionRequest = chatRequest
+		} else {
+			logger.Error(err, "Error creating chat completion request")
+		}
 	}
 
 	requestBodyBytes, err = json.Marshal(requestBodyMap)
@@ -152,7 +165,7 @@ func (s *StreamingServer) HandleRequestHeaders(ctx context.Context, reqCtx *Requ
 	}
 
 	for _, header := range req.RequestHeaders.Headers.Headers {
-		reqCtx.RequestHeaders[header.Key] = header.Value
+		reqCtx.RequestHeaders[header.Key] = string(header.RawValue)
 	}
 
 	return nil

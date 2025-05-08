@@ -13,17 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package scorers
+
+package scorer
 
 import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/config"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
-type LoadBasedScorer struct{}
+type LoadAwareScorer struct{}
 
-func (s LoadBasedScorer) Name() string {
-	return "load based scorer"
+func (s *LoadAwareScorer) Name() string {
+	return "load-aware-scorer"
 }
 
 // Score scores the given pod in range of 0-1
@@ -33,7 +34,7 @@ func (s LoadBasedScorer) Name() string {
 // Pod with requests in the queue will get score between 0.5 and 0.
 // Score 0 will get pod with number of requests in the queue equal to the threshold used in load-based filter (QueueingThresholdLoRA)
 // In future pods with additional capacity will get score higher than 0.5
-func (s LoadBasedScorer) Score(ctx *types.SchedulingContext, pods []types.Pod) map[types.Pod]float64 {
+func (s *LoadAwareScorer) Score(ctx *types.SchedulingContext, pods []types.Pod) map[types.Pod]float64 {
 	scoredPods := make(map[types.Pod]float64)
 
 	for _, pod := range pods {

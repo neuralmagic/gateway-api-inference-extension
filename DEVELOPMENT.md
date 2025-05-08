@@ -35,6 +35,13 @@ serving resources.
 > simulator separately on your local system. In a future iteration this will
 > be handled automatically and will not be required.
 
+> **Note**: If you would like to use Istio as the Gateway implementation, you
+> currently need to opt-in to that. Set the following environment variables
+> before running make:
+>
+>   export GATEWAY_IMPLEMENTATION=istio
+>   export GATEWAY_CONTROL_PLANE_NAMESPACE=istio-system
+
 Run the following:
 
 ```bash

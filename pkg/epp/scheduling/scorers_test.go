@@ -25,7 +25,7 @@ import (
 	backendmetrics "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/backend/metrics" // Import config for thresholds
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/picker"
-	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorers"
+	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/plugins/scorer"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
 )
 
@@ -40,7 +40,7 @@ func TestScorers(t *testing.T) {
 	}{
 		{
 			name:   "load based scorer",
-			scorer: &scorers.LoadBasedScorer{},
+			scorer: &scorer.LoadAwareScorer{},
 			req: &types.LLMRequest{
 				Model:               "critical",
 				ResolvedTargetModel: "critical",
@@ -86,19 +86,23 @@ func TestScorers(t *testing.T) {
 				},
 			},
 			wantRes: &types.Result{
-				TargetPod: &types.PodMetrics{
-					Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "pod2"}},
-					Metrics: &backendmetrics.Metrics{
-						WaitingQueueSize:    0,
-						KVCacheUsagePercent: 0.2,
-						MaxActiveModels:     2,
-						ActiveModels: map[string]int{
-							"foo": 1,
-							"bar": 1,
+				TargetPod: &types.ScoredPod{
+					Pod: &types.PodMetrics{
+						Pod: &backendmetrics.Pod{NamespacedName: k8stypes.NamespacedName{Name: "pod2"}},
+						Metrics: &backendmetrics.Metrics{
+							WaitingQueueSize:    0,
+							KVCacheUsagePercent: 0.2,
+							MaxActiveModels:     2,
+							ActiveModels: map[string]int{
+								"foo": 1,
+								"bar": 1,
+							},
+							WaitingModels: map[string]int{},
 						},
-						WaitingModels: map[string]int{},
 					},
+					Score: 0.5,
 				},
+				MutatedHeaders: map[string]string{},
 			},
 		},
 	}

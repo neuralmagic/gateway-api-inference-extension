@@ -165,6 +165,9 @@ spec:
         workspaces:
           - name: source
             workspace: source
+          - name: git-auth
+            workspace: git-auth
+
 
       - name: extract-version-and-registry
         params:
@@ -328,6 +331,8 @@ spec:
             workspace: registry-secret
           - name: container-storage
             workspace: container-storage
+          - name: git-auth
+            workspace: git-auth
 
       - name: vulnerability-scan
         when:

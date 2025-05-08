@@ -65,10 +65,10 @@ case "${VLLM_MODE}" in
       export LORA_ADAPTER_SYNCER_TAG="${LORA_ADAPTER_SYNCER_TAG:-v20250425-ddc3d69}"
 
     elif [[ "$VLLM_MODE" == "vllm-p2p" ]]; then
-      export VLLM_IMAGE="${VLLM_IMAGE:-lmcache/vllm-openai}"
-      export VLLM_TAG="${VLLM_TAG:-2025-03-10}"
-      export EPP_IMAGE="${EPP_IMAGE:- quay.io/vmaroon/gateway-api-inference-extension/epp}"
-      export EPP_TAG="${EPP_TAG:-kv-aware}"
+      export VLLM_IMAGE="${VLLM_IMAGE:-quay.io/llm-d/llm-d-dev}"
+      export VLLM_TAG="${VLLM_TAG:-lmcache-0.0.6-amd64}"
+      export EPP_IMAGE="${EPP_IMAGE:-quay.io/llm-d/llm-d-gateway-api-inference-extension-dev}"
+      export EPP_TAG="${EPP_TAG:-0.0.5-amd64}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"
       export PVC_NAME="${PVC_NAME:-vllm-p2p-storage-claim}"
       export PVC_ACCESS_MODE="${PVC_ACCESS_MODE:-ReadWriteOnce}"

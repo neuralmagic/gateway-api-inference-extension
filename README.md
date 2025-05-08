@@ -6,6 +6,85 @@
 
 This project offers tools for AI Inference, enabling developers to build [Inference Gateways].
 
+---
+## Temporary Fork Configuration
+
+To enable the KVCacheAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_KVCACHE_AWARE_SCORER=true
+export KVCACHE_AWARE_SCORER_WEIGHT=1.0
+export KVCACHE_INDEXER_REDIS_ADDR=<redis-service>
+export HF_TOKEN=<HuggingFace Token that has access to the vLLM models>
+```
+
+To enable the PrefixAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_PREFIX_AWARE_SCORER=true
+export PREFIX_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable the LoadAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_LOAD_AWARE_SCORER=true
+export LOAD_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable the SessionAwareScorer, the following environment variables must be configured:
+```
+export ENABLE_SESSION_AWARE_SCORER=true
+export SESSION_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable Prefill/Decode (PD) processing, the following environment variable must be configured:
+```
+export PD_ENABLED=true
+```
+
+To define the prompt length threshold (requests with a prompt longer than the value defined here will be processed using the prefill-decode process), the following environment variable must be configured:
+```
+export PD_PROMPT_LEN_THRESHOLD=10
+```
+
+Prefill configuration:
+
+To enable and configure the kv cache scorer for prefill, the following environment variables must be configured:
+```
+export PREFILL_ENABLE_KVCACHE_AWARE_SCORER=true
+export PREFILL_KVCACHE_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure the load aware scorer for prefill, the following environment variables must be configured:
+```
+export PREFILL_ENABLE_LOAD_AWARE_SCORER=true
+export PREFILL_LOAD_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure the prefix aware scorer for prefill, the following environment variables must be configured:
+```
+export PREFILL_ENABLE_PREFIX_AWARE_SCORER=true
+export PREFILL_PREFIX_AWARE_SCORER_WEIGHT=1.0
+```
+
+Decode configuration:
+
+To enable and configure the kv cache scorer for decode, the following environment variables must be configured:
+```
+export DECODE_ENABLE_KVCACHE_AWARE_SCORER=true
+export DECODE_KVCACHE_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure the load aware scorer for decode, the following environment variables must be configured:
+```
+export DECODE_ENABLE_LOAD_AWARE_SCORER=true
+export DECODE_LOAD_AWARE_SCORER_WEIGHT=1.0
+```
+
+To enable and configure the prefix aware scorer for decode, the following environment variables must be configured:
+```
+export DECODE_ENABLE_PREFIX_AWARE_SCORER=true
+export DECODE_PREFIX_AWARE_SCORER_WEIGHT=1.0
+```
+---
 [Inference Gateways]:#concepts-and-definitions
 
 ## Concepts and Definitions
@@ -79,8 +158,8 @@ See our website at https://gateway-api-inference-extension.sigs.k8s.io/ for deta
 ## Roadmap
 
 As Inference Gateway builds towards a GA release. We will continue to expand our capabilities, namely:
-1. Prefix-cache aware load balancing with interfaces for remote caches 
-1. Recommended LoRA adapter pipeline for automated rollout 
+1. Prefix-cache aware load balancing with interfaces for remote caches
+1. Recommended LoRA adapter pipeline for automated rollout
 1. Fairness and priority between workloads within the same criticality band
 1. HPA support for autoscaling on aggregate metrics derived from the load balancer
 1. Support for large multi-modal inputs and outputs
@@ -104,4 +183,3 @@ Contributions are readily welcomed, follow the [dev guide](./docs/dev.md) to sta
 ### Code of conduct
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
-

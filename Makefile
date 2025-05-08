@@ -3,8 +3,8 @@ IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
-TARGETOS ?= linux
-TARGETARCH ?= amd64
+TARGETOS ?= $(shell go env GOOS)
+TARGETARCH ?= $(shell go env GOARCH)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -439,11 +439,20 @@ lint: check-golangci-lint ## Run lint
 	golangci-lint run
 
 ##@ Build
+LDFLAGS ?= -extldflags '-L$(shell pwd)/lib'
+CGO_ENABLED=1 # Enable CGO
+
+.PHONY: download-tokenizer
+download-tokenizer: ## Download the HuggingFace tokenizer bindings.
+	@echo "Downloading HuggingFace tokenizer bindings..."
+	mkdir -p lib
+	curl -L https://github.com/daulet/tokenizers/releases/download/v1.20.2/libtokenizers.$(TARGETOS)-$(TARGETARCH).tar.gz | tar -xz -C lib
+	ranlib lib/*.a
 
 .PHONY: build
-build: check-go ##
+build: check-go download-tokenizer ##
 	@printf "\033[33;1m==== Building ====\033[0m\n"
-	go build -o bin/epp cmd/epp/main.go cmd/epp/health.go
+	go build -ldflags="$(LDFLAGS)" -o bin/epp cmd/epp/main.go cmd/epp/health.go
 
 ##@ Container Build/Push
 
@@ -456,7 +465,12 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  for arch in amd64; do \
 	    ARCH_TAG=$$FINAL_TAG-$$arch; \
 	    echo "📦 Building for architecture: $$arch"; \
-		buildah build --arch=$$arch --os=linux --layers -t $(IMG)-$$arch . || exit 1; \
+		buildah build \
+			--arch=$$arch \
+			--build-arg GIT_NM_USER=$(GIT_NM_USER) \
+            --build-arg NM_TOKEN=$(NM_TOKEN) \
+			--os=linux \
+			--layers -t $(IMG)-$$arch . || exit 1; \
 	    echo "🚀 Pushing image: $(IMG)-$$arch"; \
 	    buildah push $(IMG)-$$arch docker://$(IMG)-$$arch || exit 1; \
 	  done; \
@@ -474,7 +488,11 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 	  sed -e '1 s/\(^FROM\)/FROM --platform=$${BUILDPLATFORM}/' Dockerfile > Dockerfile.cross; \
 	  - docker buildx create --use --name image-builder || true; \
 	  docker buildx use image-builder; \
-	  docker buildx build --push --platform=$(PLATFORMS) --tag $(IMG) -f Dockerfile.cross . || exit 1; \
+	  docker buildx build --push \
+	  			--platform=$(PLATFORMS) \
+	  			--build-arg GIT_NM_USER=$(GIT_NM_USER)\
+                --build-arg NM_TOKEN=$(NM_TOKEN) \
+                --tag $(IMG) -f Dockerfile.cross . || exit 1; \
 	  docker buildx rm image-builder || true; \
 	  rm Dockerfile.cross; \
 	elif [ "$(BUILDER)" = "podman" ]; then \
@@ -489,7 +507,12 @@ buildah-build: check-builder load-version-json ## Build and push image (multi-ar
 .PHONY:	image-build
 image-build: check-container-tool load-version-json ## Build container image using $(CONTAINER_TOOL)
 	@printf "\033[33;1m==== Building container image $(IMG) ====\033[0m\n"
-	$(CONTAINER_TOOL) build --build-arg TARGETOS=$(TARGETOS) --build-arg TARGETARCH=$(TARGETARCH) -t $(IMG) .
+	$(CONTAINER_TOOL) build --platform=$(TARGETOS)/$(TARGETARCH) \
+ 		--build-arg TARGETOS=$(TARGETOS) \
+		--build-arg TARGETARCH=$(TARGETARCH) \
+		--build-arg GIT_NM_USER=$(GIT_NM_USER)\
+        --build-arg NM_TOKEN=$(NM_TOKEN) \
+ 		-t $(IMG) .
 
 .PHONY: image-push
 image-push: check-container-tool load-version-json ## Push container image $(IMG) to registry

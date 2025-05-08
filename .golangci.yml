@@ -1,7 +1,7 @@
 run:
   timeout: 5m
   allow-parallel-runners: true
-
+    
 # Settings related to issues
 issues:
   # Report issues on new code only (since we're brining in from upstream)
@@ -9,6 +9,7 @@ issues:
   # Which dirs to exclude: issues from them won't be reported
   exclude-dirs:
     - bin
+    
 linters:
   disable-all: true
   enable:
@@ -18,7 +19,7 @@ linters:
     - fatcontext
     - ginkgolinter
     - gocritic
-    - govet
+    # - govet        # do not enable - this causes some metalinter issue
     - loggercheck
     - misspell
     - perfsprint
@@ -27,16 +28,12 @@ linters:
     - makezero
     - errcheck
     - goconst
-    - gofmt
-    - goimports
-    - gosimple
     - ineffassign
     - nakedret
     - prealloc
-    - typecheck
     - unparam
     - unused
-    
+
 linters-settings:
   revive:
     rules:

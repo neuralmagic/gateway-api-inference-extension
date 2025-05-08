@@ -18,7 +18,7 @@ spec:
       terminationGracePeriodSeconds: 130
       containers:
       - name: epp
-        image: quay.io/llm-d/gateway-api-inference-extension:latest
+        image: quay.io/llm-d/gateway-api-inference-extension/epp:latest
         imagePullPolicy: IfNotPresent
         args:
         - -poolName
