@@ -122,10 +122,10 @@ func (s *PrefixStore) AddEntry(modelName string, prompt string, pod *types.Names
 		// Compute the hash for the current block
 		digest.Reset()
 		if err := binary.Write(digest, binary.LittleEndian, previousHash); err != nil {
-			break
+			return fmt.Errorf("failed to write previous hash: %w", err)
 		}
 		if _, err := digest.Write(promptBytes[start:end]); err != nil {
-			break
+			return fmt.Errorf("failed to write prompt bytes: %w", err)
 		}
 
 		blockHash := digest.Sum64()
