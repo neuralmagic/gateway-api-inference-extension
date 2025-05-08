@@ -17,6 +17,7 @@ limitations under the License.
 package scorer
 
 import (
+	"encoding/binary"
 	"fmt"
 	"k8s.io/apimachinery/pkg/types"
 	"sync"
@@ -107,20 +108,28 @@ func (s *PrefixStore) AddEntry(modelName string, prompt string, pod *types.Names
 	}
 	s.Unlock()
 
+	promptBytes := []byte(prompt)
+	previousHash := uint64(0)
+	digest := xxhash.New()
+
 	// Chunk the text into blocks and populate the cache
-	for start := 0; start < len(prompt); start += s.blockSize {
+	for start := 0; start < len(promptBytes); start += s.blockSize {
 		end := start + s.blockSize
-		if end > len(prompt) {
+		if end > len(promptBytes) {
 			break // skip partial blocks
 		}
 
 		// Compute the hash for the current block
-		digest := xxhash.New()
-		if _, err := digest.WriteString(prompt[start:end]); err != nil {
-			return fmt.Errorf("failed to compute chunk hash: %w", err)
+		digest.Reset()
+		if err := binary.Write(digest, binary.LittleEndian, previousHash); err != nil {
+			return fmt.Errorf("failed to write previous hash: %w", err)
+		}
+		if _, err := digest.Write(promptBytes[start:end]); err != nil {
+			return fmt.Errorf("failed to write prompt bytes: %w", err)
 		}
 
 		blockHash := digest.Sum64()
+		previousHash = blockHash
 
 		b, ok := cache.Get(blockHash)
 		if !ok {
@@ -154,18 +163,27 @@ func (s *PrefixStore) FindMatchingPods(prompt, modelName string) map[string]int 
 		return nil
 	}
 
+	promptBytes := []byte(prompt)
+	previousHash := uint64(0)
+	digest := xxhash.New()
+
 	matchedPods := make(map[string]int)
-	for start := 0; start < len(prompt); start += s.blockSize {
+	for start := 0; start < len(promptBytes); start += s.blockSize {
 		end := start + s.blockSize
-		if end > len(prompt) {
-			end = len(prompt)
+		if end > len(promptBytes) {
+			break // skip partial blocks
 		}
 
-		digest := xxhash.New()
-		if _, err := digest.WriteString(prompt[start:end]); err != nil {
-			return nil
+		digest.Reset()
+		if err := binary.Write(digest, binary.LittleEndian, previousHash); err != nil {
+			break
 		}
+		if _, err := digest.Write(promptBytes[start:end]); err != nil {
+			break
+		}
+
 		blockHash := digest.Sum64()
+		previousHash = blockHash
 
 		b, ok := cache.Get(blockHash)
 		if !ok {

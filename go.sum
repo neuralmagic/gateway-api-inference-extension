@@ -159,6 +159,8 @@ github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f h1:y5//uYreIhSUg3J
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
 github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250430102735-86595011431d h1:6YSxvAG4ve5jy0nTLs509OMU5fuiQ3JNQdZxqiu8PgQ=
 github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250430102735-86595011431d/go.mod h1:VB+KcEemkO1ZKpz/hgUPQMU9oSLv2uCLW6y6c+r8jkQ=
+github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250508211654-1fbe7c5f15e9 h1:xqVxrZoIDwCZ+065w6XyU27IZJfe6XOUmvhIpbQvoD8=
+github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250508211654-1fbe7c5f15e9/go.mod h1:VB+KcEemkO1ZKpz/hgUPQMU9oSLv2uCLW6y6c+r8jkQ=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
