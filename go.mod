@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250430102735-86595011431d
+	github.com/neuralmagic/llm-d-kv-cache-manager v0.0.0-20250508211654-1fbe7c5f15e9
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/prometheus/client_golang v1.22.0
