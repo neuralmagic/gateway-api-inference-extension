@@ -142,7 +142,7 @@ func (r *ExtProcServerRunner) AsRunnable(logger logr.Logger) manager.Runnable {
 		if scheduling.PDEnabled {
 			scheduler = scheduling.NewPDScheduler(r.Datastore)
 		} else {
-			scheduler = scheduling.NewScheduler(r.Datastore)
+			scheduler = scheduling.NewScheduler(ctx, r.Datastore)
 		}
 		extProcServer := handlers.NewStreamingServer(scheduler, r.DestinationEndpointHintMetadataNamespace, r.DestinationEndpointHintKey, r.Datastore)
 		extProcPb.RegisterExternalProcessorServer(

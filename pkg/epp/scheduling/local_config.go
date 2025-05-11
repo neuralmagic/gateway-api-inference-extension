@@ -39,23 +39,18 @@ const (
 	sessionAwareScorerWeightEnvVar = "SESSION_AWARE_SCORER_WEIGHT"
 )
 
-func init() {
-	setDefaultConfig()
-}
-
-func setDefaultConfig() {
+func setDefaultConfig(ctx context.Context) {
 	// since the default config is a global variable, we add this function to minimize rebase conflicts.
 	// this configuration is a temporary state, it should be better streamlined.
-	setLoadAwareScorer()
-	setSessionAwareScorer()
-	setKVCacheAwareScorer()
-	setPrefixScorer()
+	setLoadAwareScorer(ctx)
+	setSessionAwareScorer(ctx)
+	setKVCacheAwareScorer(ctx)
+	setPrefixScorer(ctx)
 
 	defaultConfig.picker = picker.NewMaxScorePicker()
 }
 
-func setLoadAwareScorer() {
-	ctx := context.Background()
+func setLoadAwareScorer(ctx context.Context) {
 	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
 
 	if envutil.GetEnvString(loadAwareScorerEnablementEnvVar, "false", loggerDebug) != "true" {
@@ -68,8 +63,7 @@ func setLoadAwareScorer() {
 	loggerDebug.Info("Initialized LoadAwareScorer", "weight", loadBasedScorerWeight)
 }
 
-func setSessionAwareScorer() {
-	ctx := context.Background()
+func setSessionAwareScorer(ctx context.Context) {
 	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
 
 	if envutil.GetEnvString(sessionAwareScorerEnablementEnvVar, "false", loggerDebug) != "true" {
@@ -85,8 +79,7 @@ func setSessionAwareScorer() {
 	loggerDebug.Info("Initialized SessionAwareScorer", "weight", sessionBasedScorerWeight)
 }
 
-func setKVCacheAwareScorer() {
-	ctx := context.Background()
+func setKVCacheAwareScorer(ctx context.Context) {
 	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
 
 	if envutil.GetEnvString(kvCacheScorerEnablementEnvVar, "false", loggerDebug) != "true" {
@@ -105,8 +98,7 @@ func setKVCacheAwareScorer() {
 	loggerDebug.Info("Initialized KVCacheAwareScorer", "weight", kvCacheScorerWeight)
 }
 
-func setPrefixScorer() {
-	ctx := context.Background()
+func setPrefixScorer(ctx context.Context) {
 	loggerDebug := log.FromContext(ctx).WithName("scheduler_config").V(logutil.DEBUG)
 
 	if envutil.GetEnvString(prefixScorerEnablementEnvVar, "false", loggerDebug) != "true" {
