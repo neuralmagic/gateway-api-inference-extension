@@ -69,7 +69,8 @@ var (
 	}
 )
 
-func NewScheduler(datastore Datastore) *Scheduler {
+func NewScheduler(ctx context.Context, datastore Datastore) *Scheduler {
+	setDefaultConfig(ctx)
 	return NewSchedulerWithConfig(datastore, defaultConfig)
 }
 

@@ -109,7 +109,7 @@ func TestScorers(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			scheduler := NewScheduler(&fakeDataStore{pods: test.input})
+			scheduler := NewScheduler(t.Context(), &fakeDataStore{pods: test.input})
 			scheduler.scorers = map[plugins.Scorer]int{test.scorer: 1}
 			scheduler.picker = &picker.MaxScorePicker{}
 			got, err := scheduler.Schedule(context.Background(), test.req)
