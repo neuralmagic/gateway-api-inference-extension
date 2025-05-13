@@ -172,7 +172,7 @@ kubectl config set-context --current --namespace="${NAMESPACE}"
 > NOTE: If you are using OpenShift (oc CLI), use the following instead: `oc project "${NAMESPACE}"`
 
 You'll need to provide a `Secret` with the login credentials for your private
-repository (e.g. quay.io). It should look something like this:
+repository (e.g. ghcr.io). It should look something like this:
 
 ```yaml
 apiVersion: v1
@@ -216,7 +216,7 @@ export HF_TOKEN="<HF_TOKEN>"
 
 **Note:** The model can be replaced. See [Environment Configuration](#environment-configuration) for model settings.
 
-> NOTE: you can set above images to the prebuilt images on quay.io.
+> NOTE: you can set above images to the prebuilt images on ghcr.io.
 > Just note that the EPP image is not using the `/epp` suffix.
 
 Once all this is set up, you can deploy the environment:
@@ -319,7 +319,7 @@ DEV_VERSION=$EPP_TAG make image-build
 Tag the image for your private registry and push it:
 
 ```bash
-$CONTAINER_RUNTIME tag quay.io/llm-d/llm-d-gateway-api-inference-extension/epp:$TAG \
+$CONTAINER_RUNTIME tag ghcr.io/llm-d/llm-d-gateway-api-inference-extension/epp:$TAG \
     <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 $CONTAINER_RUNTIME push <MY_REGISTRY>/<MY_IMAGE>:$EPP_TAG
 ```

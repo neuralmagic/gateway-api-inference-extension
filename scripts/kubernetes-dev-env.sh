@@ -39,7 +39,7 @@ export VLLM_MODE="${VLLM_MODE:-vllm-sim}"
 
 case "${VLLM_MODE}" in
   vllm-sim)
-    export VLLM_SIM_IMAGE="${VLLM_SIM_IMAGE:-quay.io/llm-d/vllm-sim}"
+    export VLLM_SIM_IMAGE="${VLLM_SIM_IMAGE:-ghcr.io/llm-d/vllm-sim}"
     export VLLM_SIM_TAG="${VLLM_SIM_TAG:-0.0.2}"
     export EPP_IMAGE="${EPP_IMAGE:-us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/epp}"
     export EPP_TAG="${EPP_TAG:-main}"
@@ -55,9 +55,9 @@ case "${VLLM_MODE}" in
     export VLLM_DEPLOYMENT_NAME="${VLLM_DEPLOYMENT_NAME:-vllm-${MODEL_LABEL}}"
 
     if [[ "$VLLM_MODE" == "vllm" ]]; then
-      export VLLM_IMAGE="${VLLM_IMAGE:-quay.io/llm-d/llm-d-dev}"
+      export VLLM_IMAGE="${VLLM_IMAGE:-ghcr.io/llm-d/llm-d-dev}"
       export VLLM_TAG="${VLLM_TAG:-0.0.2}"
-      export EPP_IMAGE="${EPP_IMAGE:-quay.io/llm-d/gateway-api-inference-extension-dev}"
+      export EPP_IMAGE="${EPP_IMAGE:-ghcr.io/llm-d/gateway-api-inference-extension-dev}"
       export EPP_TAG="${EPP_TAG:-0.0.4}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}"
       export PVC_NAME="${PVC_NAME:-vllm-storage-claim}"
@@ -65,9 +65,9 @@ case "${VLLM_MODE}" in
       export LORA_ADAPTER_SYNCER_TAG="${LORA_ADAPTER_SYNCER_TAG:-v20250425-ddc3d69}"
 
     elif [[ "$VLLM_MODE" == "vllm-p2p" ]]; then
-      export VLLM_IMAGE="${VLLM_IMAGE:-quay.io/llm-d/llm-d-dev}"
+      export VLLM_IMAGE="${VLLM_IMAGE:-ghcr.io/llm-d/llm-d-dev}"
       export VLLM_TAG="${VLLM_TAG:-lmcache-0.0.6-amd64}"
-      export EPP_IMAGE="${EPP_IMAGE:-quay.io/llm-d/llm-d-gateway-api-inference-extension-dev}"
+      export EPP_IMAGE="${EPP_IMAGE:-ghcr.io/llm-d/llm-d-gateway-api-inference-extension-dev}"
       export EPP_TAG="${EPP_TAG:-0.0.5-amd64}"
       export MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"
       export PVC_NAME="${PVC_NAME:-vllm-p2p-storage-claim}"

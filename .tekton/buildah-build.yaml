@@ -41,8 +41,8 @@ spec:
         cp /workspace/registry/.dockerconfigjson /root/.docker/config.json
 
         echo "🔐 Extracting credentials..."
-        USERNAME=$(jq -r '.auths["quay.io"].username' /root/.docker/config.json)
-        PASSWORD=$(jq -r '.auths["quay.io"].password' /root/.docker/config.json)
+        USERNAME=$(jq -r '.auths["ghcr.io"].username' /root/.docker/config.json)
+        PASSWORD=$(jq -r '.auths["ghcr.io"].password' /root/.docker/config.json)
 
         echo "🔐 Extracting Git credentials from workspace..."
         GIT_USER=$(cat /workspace/git-auth/username)
@@ -59,8 +59,8 @@ spec:
         fi
 
         echo "🔓 Logging in to registry with Buildah..."
-        buildah logout quay.io || true
-        buildah login --username "$USERNAME" --password "$PASSWORD" quay.io
+        buildah logout ghcr.io || true
+        buildah login --username "$USERNAME" --password "$PASSWORD" ghcr.io
 
         export DOCKER_CONFIG=/root/.docker
         export BUILDER=buildah
